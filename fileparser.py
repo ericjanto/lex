@@ -5,6 +5,7 @@ File Parser
 Parses a file into .txt-format.
 Supports epub only for now.
 """
+import re
 import ebooklib
 import json
 
@@ -26,21 +27,25 @@ class FileParser:
         """
         self.book = epub.read_epub(self.path, {"ignore_ncx": True})
 
-        # Meta data
-        # Title, author, language
-        # print()
         with open(self.path + ".meta.json", "w") as f:
             m = {}
             author_meta = self.book.get_metadata("DC", "creator")
             if author_meta:
-                m["author"] = author_meta[0][1][
-                    "{http://www.idpf.org/2007/opf}file-as"
-                ]
+                m["author"] = author_meta[0][1]["{http://www.idpf.org/2007/opf}file-as"]
             else:
-                m['author'] = input('Please provide author manually: ')
+                m["author"] = input("Please provide author manually: ")
 
-            m['title'] = self.book.get_metadata("DC", "title")[0][0]
-            m['language'] = self.book.get_metadata("DC", "language")[0][0]
+            m["title"] = self.book.get_metadata("DC", "title")[0][0]
+
+            lang_meta = self.book.get_metadata("DC", "language")[0][0]
+            while not re.match(r"\w{2}", lang_meta):
+                m["language"] = input(
+                    """
+                    Language specifier does not conform to
+                    shorthand ISO 639 (e.g. en). Please enter
+                    manually: 
+                    """
+                )
             json.dump(m, f)
 
         # Contents
@@ -51,7 +56,7 @@ class FileParser:
             for item in items:
                 soup = BeautifulSoup(item.get_body_content(), "html.parser")
                 for p in soup.find_all("p"):
-                    f.write(p.get_text().replace("\n", " "))
+                    f.write(p.get_text())
 
 
 if __name__ == "__main__":

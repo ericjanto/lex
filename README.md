@@ -1,3 +1,5 @@
+Lex is a vocabulary management system for personal use.
+
 ## Local setup
 
 You can create a virtual env using conda. For this you need

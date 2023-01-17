@@ -1,3 +1,5 @@
+black
+ebooklib
 mysql-connector-python
 nltk
 python-dotenv

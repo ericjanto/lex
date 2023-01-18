@@ -2,24 +2,47 @@
 File Parser
 ===========
 
-Parses a file into .txt-format.
+Parses file contents into .txt-format.
 Supports epub only for now.
 """
-import re
 import ebooklib
 import json
+import os
+import re
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
 class FileParser:
-    """
-    TODO
-    """
+    """ """
 
     def __init__(self, path: str) -> None:
         self.path = path
+        self.file_name, self.file_extension = os.path.splitext(path)
+        self.contentpath = self.file_name + ".content.txt"
+        self.metapath = self.file_name + ".meta.json"
+
+    def parse(self) -> None:
+        """
+        Determines the respective parsing method for the given
+        file type.
+
+        Args:
+            filetype: type of file (e.g. epub, pdf)
+        """
+        match (self.file_extension):
+            case ".epub":
+                self.parse_epub()
+            case _:
+                raise NotImplementedError(
+                    f"""
+                                        Parsing for files of type {self.file_extension}
+                                        is not implemented yet. If this is not
+                                        the expected file type, make sure the 
+                                        file name is correct.
+                                        """
+                )
 
     def parse_epub(self) -> None:
         """
@@ -27,18 +50,16 @@ class FileParser:
         """
         self.book = epub.read_epub(self.path, {"ignore_ncx": True})
 
-        with open(self.path + ".meta.json", "w") as f:
+        with open(self.metapath, "w") as f:
             m = {}
             author_meta = self.book.get_metadata("DC", "creator")
             if author_meta:
                 m["author"] = author_meta[0][1]["{http://www.idpf.org/2007/opf}file-as"]
             else:
                 m["author"] = input("Please provide author manually: ")
-
             m["title"] = self.book.get_metadata("DC", "title")[0][0]
-
-            lang_meta = self.book.get_metadata("DC", "language")[0][0]
-            while not re.match(r"\w{2}", lang_meta):
+            m["language"] = self.book.get_metadata("DC", "language")[0][0]
+            while not re.match(r"\w{2}", m["language"]):
                 m["language"] = input(
                     """
                     Language specifier does not conform to
@@ -48,17 +69,26 @@ class FileParser:
                 )
             json.dump(m, f)
 
-        # Contents
         items = self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
         items = filter(lambda i: i.get_name().find(".html") >= 0, items)
 
-        with open(self.path + ".content.txt", "w") as f:
+        with open(self.contentpath, "w") as f:
             for item in items:
                 soup = BeautifulSoup(item.get_body_content(), "html.parser")
                 for p in soup.find_all("p"):
                     f.write(p.get_text())
 
+    def clean(self) -> None:
+        """
+        Removes any files this parser might have created.
+        """
+        if os.path.exists(self.contentpath):
+            os.remove(self.contentpath)
+        if os.path.exists(self.metapath):
+            os.remove(self.metapath)
+
 
 if __name__ == "__main__":
     fp = FileParser("assets/dev-samples/harry-potter.epub")
-    fp.parse_epub()
+    fp.parse()
+    # fp.clean()

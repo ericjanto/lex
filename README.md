@@ -1,5 +1,13 @@
 Lex is a vocabulary management system for personal use.
 
+## Concept
+
+```txt
+Parse file             --> fileparser
+Extract relevant words --> tokeniser
+Update knowledge base  --> sync
+```
+
 ## Local setup
 
 You can create a virtual env using conda. For this you need

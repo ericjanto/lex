@@ -1,9 +1,8 @@
-def map_iso_lang_to_punkt(iso_lang: str) -> str:
+def iso_639_1_to_full(iso_lang: str) -> str:
     """
     Maps a ISO 639-1 language code (e.g. en) to
-    the language specifer used by the PunktSentenceTokenizer.
-
-    This can be verified in \\nltk_data\\tokenizers\\punkt.
+    a full language specifer (as used by the
+    PunktSentenceTokenizer).
     """
     map = {
         "cz": "czech",
@@ -34,6 +33,42 @@ def map_iso_lang_to_punkt(iso_lang: str) -> str:
         raise LookupError(
             f"""
             No corresponding language found for {iso_lang}.
-            Check \\nltk_data\\tokenizers\\punkt.
+            """
+        )
+
+def iso_639_1_to_639_2(iso_lang: str) -> str:
+    """
+    Maps a ISO 639-1 language code (e.g. en) to
+    a ISO 639-2 language code.
+    """
+    map = {
+        "cz": "ces",
+        "da": "dan",
+        "nl": "dum",
+        "en": "eng",
+        "et": "est",
+        "fi": "fin",
+        "fr": "fra",
+        "de": "deu",
+        "el": "grc",
+        "it": "ita",
+        "ml": "mal",
+        "no": "nor",
+        "pl": "pol",
+        "pt": "por",
+        "ru": "rus",
+        "sl": "slv",
+        "es": "spa",
+        "sv": "swe",
+        "tr": "tur",
+    }
+
+    iso_lang = iso_lang.lower()
+    if iso_lang in map:
+        return map[iso_lang]
+    else:
+        raise LookupError(
+            f"""
+            No corresponding language found for {iso_lang}.
             """
         )

@@ -39,3 +39,8 @@ Alternatively, if you don't want to use a virtual env you can install all requir
 ```
 pip install -r requirements.txt
 ```
+
+## Supporting a new language
+- Tokeniser: check if language supported, otherwise use English as default
+- Tagger: only Russian and English supported, so would need to train own tagger
+- Tag set: do research on which tag set to use, how to map it to universal tag set

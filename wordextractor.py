@@ -15,20 +15,20 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tag import pos_tag_sents
 from nltk.tokenize import word_tokenize
 
-from utils import map_iso_lang_to_punkt
+from utils import iso_639_1_to_full, iso_639_1_to_639_2
 
 
 class WordExtractor:
     """
-    Vocabluary extractor
+    Vocabulary extractor
 
     Args:
         path_to_txt: path to text to extract words from
-        language: language of the text
+        language: language of the text, specified in ISO 639-1
     """
 
     def __init__(self, path_to_txt: str, language: str) -> None:
-        self.language = map_iso_lang_to_punkt(language)
+        self.language = iso_639_1_to_full(language)
 
         with open(path_to_txt, "r") as f:
             self.text = f.readlines()
@@ -58,9 +58,21 @@ class WordExtractor:
 
     def __tag(self, tokenised_sentences: List[List[str]]) -> List[Tuple[str, str]]:
         """
+        Tags the given tokenised sentences using a language-dependent
+        tagger and tagset.
+
+        Args:
+            tokenised_sentences: sentences containing the tokens to be tagged
+        
+        Returns:
+            list of (token, tag) tuples
         """
-        # TODO: add map for tags in utility class
-        # tags should be language dependent
+        self.tag_lang = iso_639_1_to_639_2(self.language)
+        tagset = self.__determine_tagset()
+
+        return pos_tag_sents(tokenised_sentences)
+
+    def __determine_tagset():
         pass
 
     def __filter_irrelevant_words(self):

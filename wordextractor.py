@@ -28,7 +28,9 @@ class WordExtractor:
     """
 
     def __init__(self, path_to_txt: str, language: str) -> None:
-        self.language = iso_639_1_to_full(language)
+        self.language_full = iso_639_1_to_full(language)
+        self.language_639_1 = language
+        self.language_639_2 = iso_639_1_to_639_2(language)
 
         with open(path_to_txt, "r") as f:
             self.text = f.readlines()
@@ -50,7 +52,7 @@ class WordExtractor:
         """
         tokenised_sentences = []
         for line in self.text:
-            tokens = word_tokenize(line, language=self.language)
+            tokens = word_tokenize(line, language=self.language_full)
             if tokens:
                 tokenised_sentences.append(tokens)
 
@@ -67,17 +69,24 @@ class WordExtractor:
         Returns:
             list of (token, tag) tuples
         """
-        self.tag_lang = iso_639_1_to_639_2(self.language)
-        tagset = self.__determine_tagset()
+        self.tag_lang = self.language_639_2
+        tagset = self.__determine_tagset(self)
 
         return pos_tag_sents(tokenised_sentences)
 
-    def __determine_tagset():
-        pass
+    def __determine_tagset(self) -> None:
+        tagset = None
+        match self.language_639_2:
+            case 'eng': 
 
     def __filter_irrelevant_words(self):
         pass
 
     def __lemmatise(self):
         # Is this also language dependent?
+        pass
+
+
+    def __map_tags(self):
+        # Use nltk's map_tag()
         pass

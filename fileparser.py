@@ -27,7 +27,7 @@ class FileParser:
     def parse(self) -> None:
         """
         Determines the respective parsing method for the given
-        file type.
+        file type, and executes it.
 
         Args:
             filetype: type of file (e.g. epub, pdf)
@@ -71,7 +71,7 @@ class FileParser:
             m = {}
             author_meta = book.get_metadata("DC", "creator")
             if author_meta:
-                m["author"] = author_meta[0][1]["{http://www.idpf.org/2007/opf}file-as"]
+                m["author"] = author_meta[0][1]["\{http://www.idpf.org/2007/opf}file-as"]
             else:
                 m["author"] = input("Please provide author manually: ")
             m["title"] = book.get_metadata("DC", "title")[0][0]
@@ -80,7 +80,7 @@ class FileParser:
                 m["language"] = input(
                     """
                     Language specifier does not conform to
-                    ISO 639-1 (e.g. en). Please enter
+                    ISO 639-1 (e.g. 'en'). Please enter
                     manually: 
                     """
                 )

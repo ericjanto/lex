@@ -4,10 +4,11 @@ Word Extractor
 Extracts vocabulary from a text by performing these steps:
 
 1) Tokenise
-2) PoS-tag with tagset according to language
-3) Remove tokens with irrelevant PoS (e.g. names)
-4) Lemmatise
-5) Map to universal tag (but also keep original)
+2) Remove stopwords
+3) PoS-tag with tagset according to language
+4) Remove tokens with irrelevant PoS (e.g. names)
+5) Lemmatise
+6) Return list of (lemma,PoS-tag,token)
 """
 
 from typing import List, Tuple
@@ -36,29 +37,30 @@ class WordExtractor:
             self.text = f.readlines()
 
     def extract_vocabulary(self) -> List[Tuple[str, str]]:
-        """ """
-        # returns [(word,tag)]
-        tokenised_sentences = self.__tokenise()
-        tagged_tokens = self.__tag(tokenised_sentences)
+        """
+        TODO: docs
+        returns [(lemma,tag,original)] (use NamedTuple for this TODO)
+        """
+        tokenised_sentences = self._tokenise()
+        tagged_tokens = self._tag(tokenised_sentences)
         pass
 
-    def __tokenise(self) -> List[List[str]]:
+    def _tokenise(self) -> List[List[str]]:
         """
         Tokenises text whilst preserving sentence context.
 
         Returns:
             list of lists, each representing a tokenised
-            sentence.
+            sentence
         """
         tokenised_sentences = []
         for line in self.text:
-            tokens = word_tokenize(line, language=self.language_full)
-            if tokens:
+            if tokens := word_tokenize(line, language=self.language_full):
                 tokenised_sentences.append(tokens)
 
         return tokenised_sentences
 
-    def __tag(self, tokenised_sentences: List[List[str]]) -> List[Tuple[str, str]]:
+    def _tag(self, tokenised_sentences: List[List[str]]) -> List[Tuple[str, str]]:
         """
         Tags the given tokenised sentences using a language-dependent
         tagger and tagset.
@@ -70,23 +72,23 @@ class WordExtractor:
             list of (token, tag) tuples
         """
         self.tag_lang = self.language_639_2
-        tagset = self.__determine_tagset(self)
+        tagset = self._determine_tagset(self)
 
         return pos_tag_sents(tokenised_sentences)
 
-    def __determine_tagset(self) -> None:
+    def _determine_tagset(self) -> None:
         tagset = None
         match self.language_639_2:
-            case 'eng': 
+            case 'eng':
 
-    def __filter_irrelevant_words(self):
+    def _filter_irrelevant_words(self):
         pass
 
-    def __lemmatise(self):
+    def _lemmatise(self):
         # Is this also language dependent?
         pass
 
 
-    def __map_tags(self):
+    def _map_tags(self):
         # Use nltk's map_tag()
         pass

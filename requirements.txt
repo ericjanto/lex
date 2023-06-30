@@ -4,5 +4,6 @@ ebooklib
 mysql-connector-python
 nltk
 pre-commit
+pytest
 python-dotenv
 ruff

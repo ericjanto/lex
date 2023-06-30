@@ -21,8 +21,5 @@ repos:
   rev: 22.10.0
 - hooks:
   - id: commitizen
-  - id: commitizen-branch
-    stages:
-    - push
   repo: https://github.com/commitizen-tools/commitizen
   rev: v3.5.2

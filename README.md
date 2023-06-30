@@ -40,6 +40,9 @@ Alternatively, if you don't want to use a virtual env you can install all requir
 pip install -r requirements.txt
 ```
 
+## commitizen
+- `cz commit` to commit staged files
+
 ## Supporting a new language
 - Tokeniser: check if language supported, otherwise use English as default
 - Tagger: only Russian and English supported, so would need to train own tagger

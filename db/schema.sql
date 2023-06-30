@@ -1,7 +1,7 @@
 CREATE TABLE
     IF NOT EXISTS lemma_status (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        status ENUM ('pending', 'accepted') NOT NULL
+        status ENUM ('pending', 'accepted') NOT NULL UNIQUE
     );
 
 CREATE TABLE
@@ -20,7 +20,7 @@ CREATE TABLE
             'article',
             'conversation',
             'film'
-        ) NOT NULL
+        ) NOT NULL UNIQUE
     );
 
 CREATE TABLE

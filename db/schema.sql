@@ -15,7 +15,12 @@ CREATE TABLE
 CREATE TABLE
     IF NOT EXISTS source_kind (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        kind ENUM ('book', 'article', 'conversation', 'film') NOT NULL
+        kind ENUM (
+            'book',
+            'article',
+            'conversation',
+            'film'
+        ) NOT NULL
     );
 
 CREATE TABLE

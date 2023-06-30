@@ -2,4 +2,6 @@ black
 ebooklib
 mysql-connector-python
 nltk
+pre-commit
 python-dotenv
+ruff

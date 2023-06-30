@@ -1,0 +1,14 @@
+[tool.ruff]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "UP", # pyupgrade
+]
+
+# Same as Black.
+line-length = 79
+
+target-version = "py311"
+
+[tool.black]
+line-length = 79

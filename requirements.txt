@@ -1,4 +1,5 @@
 black
+commitizen
 ebooklib
 mysql-connector-python
 nltk

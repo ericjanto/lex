@@ -1,6 +1,5 @@
 def iso_639_1_to_full(iso_lang: str) -> str:
-    """
-    Maps a ISO 639-1 language code (e.g. en) to
+    """Maps a ISO 639-1 language code (e.g. en) to
     a full language specifer (as used by the
     PunktSentenceTokenizer).
     """
@@ -36,9 +35,9 @@ def iso_639_1_to_full(iso_lang: str) -> str:
             """
         )
 
+
 def iso_639_1_to_639_2(iso_lang: str) -> str:
-    """
-    Maps a ISO 639-1 language code (e.g. en) to
+    """Maps a ISO 639-1 language code (e.g. en) to
     a ISO 639-2 language code.
     """
     map = {

@@ -27,8 +27,8 @@ CREATE TABLE
     IF NOT EXISTS sources (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
-        kind_id INTEGER NOT NULL,
-        CONSTRAINT unique_title_kind_id UNIQUE (title, kind_id)
+        source_kind_id INTEGER NOT NULL,
+        CONSTRAINT unique_title_kind_id UNIQUE (title, source_kind_id)
     );
 
 CREATE TABLE

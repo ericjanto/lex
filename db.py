@@ -159,17 +159,18 @@ class LexDbIntegrator:
         cursor.close()
         return SourceId(source_id)
 
-    def get_source(self, source_id: SourceId) -> str | None:
+    def get_source_title(self, source_id: SourceId) -> str | None:
         """
         Returns the title of a source. Returns None if the source doesn't
         exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT title FROM sources WHERE id = %s"
+        sql = "SELECT * FROM sources WHERE id = %s"
         cursor.execute(sql, (source_id,))
-        source = res[0] if (res := cursor.fetchone()) else None
+        # TODO: parse into pydantic object
+        source_title = res[1] if (res := cursor.fetchone()) else None
         cursor.close()
-        return source
+        return source_title
 
     def add_status(self, status: str) -> StatusId:
         """
@@ -206,15 +207,17 @@ class LexDbIntegrator:
         cursor.close()
         return status
 
-    def get_status_by_lemma(self, lemma: LemmaId) -> str:
+    def get_status_by_lemma(self, lemma_id: LemmaId) -> str | None:
         """
-        Returns the status of a lemma. Guaranteed to be a valid status
-        given the database constraints.
+        Returns the status of a lemma. Returns None if the lemma id is invalid
         """
         cursor = self.connection.cursor()
         sql = "SELECT status_id FROM lemmata WHERE id = %s"
-        cursor.execute(sql, (lemma,))
-        status_id = cursor.fetchone()[0]
+        cursor.execute(sql, (lemma_id,))
+        status_id = res[0] if (res := cursor.fetchone()) else None
+        if not status_id or not self.get_lemma(lemma_id):
+            return None
+
         sql = "SELECT status FROM lemma_status WHERE id = %s"
         cursor.execute(sql, (status_id,))
         status = cursor.fetchone()[0]
@@ -261,14 +264,16 @@ class LexDbIntegrator:
         cursor.close()
         return lemma
 
-    def lemmata_source(
+    def add_lemmata_source(
         self, lemma_id: LemmaId, source_id: SourceId
     ) -> LemmataSourceId:
         """
         Adds a new lemma-source relation to the database.
         """
         # check that lemma id and source id exist
-        if not self.get_lemma(lemma_id) or not self.get_source(source_id):
+        if not self.get_lemma(lemma_id) or not self.get_source_title(
+            source_id
+        ):
             return LemmataSourceId(-1)
 
         cursor = self.connection.cursor()
@@ -308,26 +313,31 @@ class LexDbIntegrator:
         Adds a new context to the database if it doesn't exist already.
         Returns -1 if the source doesn't exist.
         """
-        if not self.get_source(source_id):
+        if not self.get_source_title(source_id):
             return ContextId(-1)
 
         if (context_id := self.get_context_id(context, source_id)) != -1:
             return context_id
 
         cursor = self.connection.cursor()
-        sql = "INSERT INTO contexts (context, source_id) VALUES (%s, %s)"
+        sql = "INSERT INTO context (context_value, source_id) VALUES (%s, %s)"
         cursor.execute(sql, (context, source_id))
         self.connection.commit()
         cursor.close()
         return ContextId(self.get_context_id(context, source_id))
 
-    def get_context_id(self, context: str, source_id: SourceId) -> ContextId:
+    def get_context_id(
+        self, context_value: str, source_id: SourceId
+    ) -> ContextId:
         """
         Returns the id of a context. Returns -1 if the context doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT id FROM contexts WHERE context = %s AND source_id = %s"
-        cursor.execute(sql, (context, source_id))
+        sql = (
+            "SELECT id FROM context WHERE context_value = %s AND source_id"
+            " = %s"
+        )
+        cursor.execute(sql, (context_value, source_id))
         context_id = res[0] if (res := cursor.fetchone()) else -1
         cursor.close()
         return ContextId(context_id)
@@ -338,7 +348,7 @@ class LexDbIntegrator:
         exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT context FROM contexts WHERE id = %s"
+        sql = "SELECT context_value FROM context WHERE id = %s"
         cursor.execute(sql, (context_id,))
         context = res[0] if (res := cursor.fetchone()) else None
         cursor.close()
@@ -389,9 +399,9 @@ class LexDbIntegrator:
             " context_id = %s AND upos_tag = %s AND detailed_tag = %s"
         )
         cursor.execute(sql, (lemma_id, context_id, upos_tag, detailed_tag))
-        ids = [LemmaContextId(lemma_id) for lemma_id in cursor.fetchall()] or [
-            LemmaContextId(-1)
-        ]
+        ids = [
+            LemmaContextId(lemma_id) for lemma_id in cursor.fetchall() or []
+        ] or [LemmaContextId(-1)]
         cursor.close()
         return ids
 
@@ -399,8 +409,9 @@ class LexDbIntegrator:
         """
         Changes the status of a lemma.
         """
-        if not self.get_lemma(lemma_id) or not (
-            status_id := self.get_status_id(status)
+        if (
+            not self.get_lemma(lemma_id)
+            or (status_id := self.get_status_id(status)) == -1
         ):
             return False
 

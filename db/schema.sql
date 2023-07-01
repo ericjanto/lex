@@ -7,7 +7,7 @@ CREATE TABLE
 CREATE TABLE
     IF NOT EXISTS lemmata (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        lemma VARCHAR(100) NOT NULL,
+        lemma VARCHAR(100) NOT NULL UNIQUE,
         created DATETIME DEFAULT CURRENT_TIMESTAMP,
         status_id INTEGER NOT NULL
     );
@@ -27,7 +27,8 @@ CREATE TABLE
     IF NOT EXISTS sources (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
-        kind_id INTEGER NOT NULL
+        kind_id INTEGER NOT NULL,
+        CONSTRAINT unique_title_kind_id UNIQUE (title, kind_id)
     );
 
 CREATE TABLE
@@ -40,7 +41,7 @@ CREATE TABLE
 CREATE TABLE
     IF NOT EXISTS context (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        context TEXT NOT NULL,
+        context_value TEXT NOT NULL,
         created DATETIME DEFAULT CURRENT_TIMESTAMP,
         source_id INTEGER NOT NULL
     );

@@ -1,7 +1,7 @@
 black
 commitizen
 ebooklib
-mysql-connector-python
+mysqlclient
 nltk
 pre-commit
 pytest

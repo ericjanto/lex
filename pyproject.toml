@@ -12,6 +12,7 @@ target-version = "py311"
 
 [tool.black]
 line-length = 79
+experimental-string-processing = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"

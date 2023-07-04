@@ -287,6 +287,20 @@ class LexDbIntegrator:
             self.get_lemmata_source_ids(lemma_id, source_id)[-1]
         )
 
+    def get_lemma_sources(self, lemma_id: LemmaId) -> list[SourceId]:
+        """
+        Returns the sources of a lemma. Returns an empty list if the lemma
+        doesn't exist.
+        """
+        cursor = self.connection.cursor()
+        sql = "SELECT source_id FROM lemmata_sources WHERE lemma_id = %s"
+        cursor.execute(sql, (lemma_id,))
+        source_ids = [
+            SourceId(source_id[0]) for source_id in cursor.fetchall() or []
+        ]
+        cursor.close()
+        return source_ids
+
     def get_lemmata_source_ids(
         self, lemma_id: LemmaId, source_id: SourceId
     ) -> list[LemmataSourceId]:
@@ -295,7 +309,6 @@ class LexDbIntegrator:
         doesn't exist.
         """
         cursor = self.connection.cursor()
-        # select all ids where lemma_id and source_id match
 
         sql = (
             "SELECT id FROM lemmata_sources WHERE lemma_id = %s AND source_id"
@@ -303,8 +316,8 @@ class LexDbIntegrator:
         )
         cursor.execute(sql, (lemma_id, source_id))
         ids = [
-            LemmataSourceId(lemma_id) for lemma_id in cursor.fetchall()
-        ] or [LemmataSourceId(-1)]
+            LemmataSourceId(lemma_id) for lemma_id in cursor.fetchall() or []
+        ]
         cursor.close()
         return ids
 
@@ -400,10 +413,34 @@ class LexDbIntegrator:
         )
         cursor.execute(sql, (lemma_id, context_id, upos_tag, detailed_tag))
         ids = [
-            LemmaContextId(lemma_id) for lemma_id in cursor.fetchall() or []
-        ] or [LemmaContextId(-1)]
+            LemmaContextId(lemma_id[0]) for lemma_id in cursor.fetchall() or []
+        ]
         cursor.close()
         return ids
+
+    def get_lemma_context(
+        self, lemma_context_id: LemmaContextId
+    ) -> tuple | None:
+        """
+        Returns the context_id and tags of a lemma-context relation.
+        """
+        cursor = self.connection.cursor()
+        sql = "SELECT * FROM lemma_context WHERE id = %s"
+        cursor.execute(sql, (lemma_context_id,))
+        res = cursor.fetchone()
+        cursor.close()
+        return res
+
+    def get_lemma_contexts(self, lemma_id: LemmaId) -> list[tuple]:
+        """
+        Returns all contexts of a lemma.
+        """
+        cursor = self.connection.cursor()
+        sql = "SELECT * FROM lemma_context WHERE lemma_id = %s"
+        cursor.execute(sql, (lemma_id,))
+        res = cursor.fetchall()
+        cursor.close()
+        return res
 
     def change_lemma_status(self, lemma_id: LemmaId, status: str) -> bool:
         """
@@ -436,18 +473,8 @@ class LexDbIntegrator:
         cursor.execute(sql, (upos_tag, lemma_context_id))
         self.connection.commit()
         cursor.close()
-        return upos_tag == self.get_lemma_context(lemma_context_id)[3]
-
-    def get_lemma_context(self, lemma_context_id: LemmaContextId) -> tuple:
-        """
-        Returns the lemma and context of a lemma-context relation.
-        """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_context WHERE id = %s"
-        cursor.execute(sql, (lemma_context_id,))
-        res = cursor.fetchone()
-        cursor.close()
-        return res
+        lemma_context = self.get_lemma_context(lemma_context_id)
+        return lemma_context is not None and upos_tag == lemma_context[3]
 
     def delete_lemma(self, lemma_id: LemmaId) -> bool:
         """
@@ -484,7 +511,7 @@ class LexDbIntegrator:
         # get all context ids associated with the lemma from lemma_context:
         sql = "SELECT context_id FROM lemma_context WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
-        set(cursor.fetchall() or [])
+        context_ids = set(cursor.fetchall() or [])
 
         # delete all entries in lemma_context with the lemma id:
         sql = "DELETE FROM lemma_context WHERE lemma_id = %s"
@@ -492,7 +519,41 @@ class LexDbIntegrator:
         self.connection.commit()
 
         # for each contextID, check if there are still entries in the
-        # lemma_context table, if not delete from context table
+        # lemma_context table, if not delete from context table rows
+        # with same contextID
+        kept_context_ids = set()
+        for context_id in context_ids:
+            cursor.execute(
+                "SELECT id FROM lemma_context WHERE context_id = %s",
+                (context_id,),
+            )
+            if not cursor.fetchone():
+                cursor.execute(
+                    "DELETE FROM context WHERE id = %s", (context_id,)
+                )
+                self.connection.commit()
+            else:
+                kept_context_ids.add(context_id)
 
-        # for each remaining context id, get value and remove lemma id from it
+        # for each kept context id, get context_value and remove lemma id
+        # from it
+        for context_id in kept_context_ids:
+            cursor.execute(
+                "SELECT context_value FROM context WHERE id = %s",
+                (context_id,),
+            )
+            context_value = cursor.fetchone()[0]
+            context_value = context_value.replace(f"::{lemma_id}", "")
+            cursor.execute(
+                "UPDATE context SET context_value = %s WHERE id = %s",
+                (context_value, context_id),
+            )
+            self.connection.commit()
+
+        # finally, delete the lemma from the lemmata table:
+        sql = "DELETE FROM lemmata WHERE id = %s"
+        cursor.execute(sql, (lemma_id,))
+        self.connection.commit()
+
+        cursor.close()
         return not self.get_lemma(lemma_id)

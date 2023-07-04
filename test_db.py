@@ -420,19 +420,13 @@ class TestExpensiveDbMethods:
         lex_db_integrator.add_lemma_context(
             lemma_id_remain, context_id_remain, "NOUN", "NNP"
         )
-        # delete the lemma
         assert lex_db_integrator.delete_lemma(lemma_id_delete) is True
-        # check that the lemma_id is removed from the lemmata_sources table
         assert len(lex_db_integrator.get_lemma_sources(lemma_id_delete)) == 0
-        # check that the lemma_id is removed from the lemmata_contexts table
         assert len(lex_db_integrator.get_lemma_contexts(lemma_id_delete)) == 0
-        # check that the lemma_id is removed from the context that is
-        # associated with both lemma_ids
         assert str(lemma_id_delete) not in lex_db_integrator.get_context(
             context_id_remain
         )
         assert str(lemma_id_remain) in lex_db_integrator.get_context(
             context_id_remain
         )
-        # check that the lemma is finally deleted from the lemmata table
         assert lex_db_integrator.get_lemma(lemma_id_delete) is None

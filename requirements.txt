@@ -2,6 +2,7 @@ black
 commitizen
 ebooklib
 mysqlclient
+mypy
 nltk
 pre-commit
 pytest

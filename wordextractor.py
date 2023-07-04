@@ -62,6 +62,7 @@ class LemmaExtractor:
     """
 
     def __init__(self, path_to_txt: str, path_to_stopwords: str) -> None:
+        self.language_full = "english"
         self.lemmatise = WordNetLemmatizer().lemmatize
 
         with open(path_to_txt) as f:
@@ -129,7 +130,7 @@ class LemmaExtractor:
                     "ADV": "r",
                 }
 
-                tagged_lemmata = []
+                tagged_lemmata: list[TaggedLemma] = []
                 pos_default = "n"
                 for rt in relevant_tokens:
                     lemmatag = None
@@ -138,7 +139,7 @@ class LemmaExtractor:
                     lemma = self.lemmatise(
                         rt.token, pos=lemmatag or pos_default
                     )
-                    tagged_lemmata.add(
+                    tagged_lemmata.append(
                         TaggedLemma(lemma, lemmatag or pos_default)
                     )
 

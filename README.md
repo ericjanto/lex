@@ -40,6 +40,12 @@ Alternatively, if you don't want to use a virtual env you can install all requir
 pip install -r requirements.txt
 ```
 
+Then
+
+```
+mypy --install-types
+```
+
 ## commitizen
 - `cz commit` to commit staged files
 

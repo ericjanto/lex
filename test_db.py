@@ -54,8 +54,20 @@ class TestExpensiveDbMethods:
         ]
 
         lex_db_integrator.add_source_kind("book")
-        # TODO: add more data to the tables once the correspondings methods are
-        # implemented
+        # add new lemma_status
+        status_id = lex_db_integrator.add_status("pending")
+        # add new lemma
+        lemma_id = lex_db_integrator.add_lemma("hobbit", status_id)
+        # add new source
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        # add new lemmata_sources
+        source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
+        # add new context
+        context_id = lex_db_integrator.add_context("Context", source_id)
+        # add new lemma_context
+        lex_db_integrator.add_lemma_context(
+            lemma_id, context_id, "NOUN", "NNP"
+        )
 
         # Validate that the tables are not empty | sourcery skip:
         # no-loop-in-tests

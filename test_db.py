@@ -212,7 +212,27 @@ class TestExpensiveDbMethods:
         assert lex_db_integrator.add_lemmata_source(lemma_id, source_id) != -1
 
     def test_get_lemmata_source_ids_invalid_ids(self, lex_db_integrator):
-        assert lex_db_integrator.get_lemmata_source_ids(-1, -1) == [-1]
+        assert lex_db_integrator.get_lemmata_source_ids(-1, -1) == []
+
+    def test_get_lemmata_source_ids_valid_lemma_id(self, lex_db_integrator):
+        status_id = lex_db_integrator.add_status("pending")
+        lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        source_id_1 = lex_db_integrator.add_source(
+            "The Hobbit", source_kind_id
+        )
+        source_id_2 = lex_db_integrator.add_source(
+            "The Hobbit 2", source_kind_id
+        )
+        lex_db_integrator.add_lemmata_source(lemma_id, source_id_1)
+        lex_db_integrator.add_lemmata_source(lemma_id, source_id_2)
+        assert lex_db_integrator.get_lemma_sources(lemma_id) == [
+            source_id_1,
+            source_id_2,
+        ]
+
+    def test_get_lemma_sources_invalid_lemma_id(self, lex_db_integrator):
+        assert lex_db_integrator.get_lemma_sources(-1) == []
 
     def test_get_lemmata_source_ids_valid_ids(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
@@ -276,9 +296,10 @@ class TestExpensiveDbMethods:
         )
 
     def test_get_lemmata_context_ids_invalid_ids(self, lex_db_integrator):
-        assert lex_db_integrator.get_lemma_context_ids(
-            -1, -1, "NOUN", "NNP"
-        ) == [-1]
+        assert (
+            lex_db_integrator.get_lemma_context_ids(-1, -1, "NOUN", "NNP")
+            == []
+        )
 
     def test_get_lemmata_context_ids_valid_ids(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
@@ -309,3 +330,109 @@ class TestExpensiveDbMethods:
         lex_db_integrator.add_status("accepted")
         lemma_id = lex_db_integrator.add_lemma("test_lemma", old_status_id)
         assert lex_db_integrator.change_lemma_status(lemma_id, "accepted")
+
+    def test_change_lemma_context_upos_tag_invalid_ids(
+        self, lex_db_integrator
+    ):
+        assert (
+            lex_db_integrator.change_lemma_context_upos_tag(-1, "NOUN")
+            is False
+        )
+
+    def test_change_lemma_context_upos_tag_valid_ids(self, lex_db_integrator):
+        status_id = lex_db_integrator.add_status("pending")
+        lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
+        context_id = lex_db_integrator.add_context("context", source_id)
+        lemma_context_id = lex_db_integrator.add_lemma_context(
+            lemma_id, context_id, "NOUN", "NNP"
+        )
+        assert lex_db_integrator.change_lemma_context_upos_tag(
+            lemma_context_id, "VERB"
+        )
+        assert (
+            lex_db_integrator.get_lemma_context(lemma_context_id)[3] == "VERB"
+        )
+
+    def test_get_lemma_context(self, lex_db_integrator):
+        status_id = lex_db_integrator.add_status("pending")
+        lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
+        context_id = lex_db_integrator.add_context("context", source_id)
+        lemma_context_id = lex_db_integrator.add_lemma_context(
+            lemma_id, context_id, "NOUN", "NNP"
+        )
+        assert lex_db_integrator.get_lemma_context(lemma_context_id)[1:] == (
+            lemma_id,
+            context_id,
+            "NOUN",
+            "NNP",
+        )
+        assert lex_db_integrator.get_lemma_context(-1) is None
+
+    def test_get_lemma_contexts(self, lex_db_integrator):
+        status_id = lex_db_integrator.add_status("pending")
+        lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
+        context_id = lex_db_integrator.add_context("context", source_id)
+        lemma_context_id = lex_db_integrator.add_lemma_context(
+            lemma_id, context_id, "NOUN", "NNP"
+        )
+        assert (
+            lex_db_integrator.get_lemma_contexts(lemma_id)[0][0]
+            == lemma_context_id
+        )
+
+    def test_delete_lemma_invalid_id(self, lex_db_integrator):
+        assert lex_db_integrator.delete_lemma(-1) is False
+        # set up the test scenario described above
+        status_id = lex_db_integrator.add_status("pending")
+        lemma_id_delete = lex_db_integrator.add_lemma("test-lemma", status_id)
+        lemma_id_remain = lex_db_integrator.add_lemma(
+            "remain-lemma", status_id
+        )
+        source_kind_id = lex_db_integrator.add_source_kind("book")
+        source_id_delete = lex_db_integrator.add_source(
+            "The Hobbit", source_kind_id
+        )
+        source_id_remain = lex_db_integrator.add_source(
+            "The Lord of the Rings", source_kind_id
+        )
+        context_id_delete = lex_db_integrator.add_context(
+            "context", source_id_delete
+        )
+        context_id_remain = lex_db_integrator.add_context(
+            f"context-remain::{lemma_id_delete}::{lemma_id_remain}",
+            source_id_remain,
+        )
+        lex_db_integrator.add_lemmata_source(lemma_id_delete, source_id_delete)
+        lex_db_integrator.add_lemmata_source(lemma_id_delete, source_id_remain)
+        lex_db_integrator.add_lemmata_source(lemma_id_remain, source_id_remain)
+        lex_db_integrator.add_lemma_context(
+            lemma_id_delete, context_id_delete, "NOUN", "NNP"
+        )
+        lex_db_integrator.add_lemma_context(
+            lemma_id_delete, context_id_remain, "NOUN", "NNP"
+        )
+        lex_db_integrator.add_lemma_context(
+            lemma_id_remain, context_id_remain, "NOUN", "NNP"
+        )
+        # delete the lemma
+        assert lex_db_integrator.delete_lemma(lemma_id_delete) is True
+        # check that the lemma_id is removed from the lemmata_sources table
+        assert len(lex_db_integrator.get_lemma_sources(lemma_id_delete)) == 0
+        # check that the lemma_id is removed from the lemmata_contexts table
+        assert len(lex_db_integrator.get_lemma_contexts(lemma_id_delete)) == 0
+        # check that the lemma_id is removed from the context that is
+        # associated with both lemma_ids
+        assert str(lemma_id_delete) not in lex_db_integrator.get_context(
+            context_id_remain
+        )
+        assert str(lemma_id_remain) in lex_db_integrator.get_context(
+            context_id_remain
+        )
+        # check that the lemma is finally deleted from the lemmata table
+        assert lex_db_integrator.get_lemma(lemma_id_delete) is None

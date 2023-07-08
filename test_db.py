@@ -2,12 +2,12 @@ import subprocess
 
 import pytest
 
-from db import LexDbIntegrator
+from db import Environment, LexDbIntegrator
 
 
 @pytest.fixture
 def lex_db_integrator():
-    lex_db_integrator = LexDbIntegrator("DEV")
+    lex_db_integrator = LexDbIntegrator(Environment.DEV)
     lex_db_integrator.empty_all_tables()
     yield lex_db_integrator
     lex_db_integrator.close_connection()
@@ -26,13 +26,13 @@ class TestInexpensiveDbMethods:
         assert lex_db_integrator.connection.open
 
     def test_close_connection(self):
-        lex_db_integrator = LexDbIntegrator("DEV")
+        lex_db_integrator = LexDbIntegrator(Environment.DEV)
         assert not lex_db_integrator.connection.closed
         lex_db_integrator.close_connection()
         assert lex_db_integrator.connection.closed
 
     def test_empty_all_tables_prod_fail(self):
-        lex_db_integrator = LexDbIntegrator("PROD")
+        lex_db_integrator = LexDbIntegrator(Environment.PROD)
         with pytest.raises(AssertionError):
             lex_db_integrator.empty_all_tables()
 
@@ -46,9 +46,9 @@ class TestExpensiveDbMethods:
         tables = [
             "source_kind",
             "lemma_status",
-            "lemmata",
-            "sources",
-            "lemmata_sources",
+            "lemma",
+            "source",
+            "lemma_source",
             "context",
             "lemma_context",
         ]
@@ -60,7 +60,7 @@ class TestExpensiveDbMethods:
         lemma_id = lex_db_integrator.add_lemma("hobbit", status_id)
         # add new source
         source_kind_id = lex_db_integrator.add_source_kind("book")
-        # add new lemmata_sources
+        # add new lemma_source
         source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
         # add new context
         context_id = lex_db_integrator.add_context("Context", source_id)
@@ -214,19 +214,19 @@ class TestExpensiveDbMethods:
         assert lex_db_integrator.get_lemma(lemma_id) is not None
 
     def test_add_lemma_source_invalid_ids(self, lex_db_integrator):
-        assert lex_db_integrator.add_lemmata_source(-1, -1) == -1
+        assert lex_db_integrator.add_lemma_source(-1, -1) == -1
 
     def test_add_lemma_source_valid_ids(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
         lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
         source_kind_id = lex_db_integrator.add_source_kind("book")
         source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
-        assert lex_db_integrator.add_lemmata_source(lemma_id, source_id) != -1
+        assert lex_db_integrator.add_lemma_source(lemma_id, source_id) != -1
 
-    def test_get_lemmata_source_ids_invalid_ids(self, lex_db_integrator):
-        assert lex_db_integrator.get_lemmata_source_ids(-1, -1) == []
+    def test_get_lemma_source_ids_invalid_ids(self, lex_db_integrator):
+        assert lex_db_integrator.get_lemma_source_ids(-1, -1) == []
 
-    def test_get_lemmata_source_ids_valid_lemma_id(self, lex_db_integrator):
+    def test_get_lemma_source_ids_valid_lemma_id(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
         lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
         source_kind_id = lex_db_integrator.add_source_kind("book")
@@ -236,25 +236,25 @@ class TestExpensiveDbMethods:
         source_id_2 = lex_db_integrator.add_source(
             "The Hobbit 2", source_kind_id
         )
-        lex_db_integrator.add_lemmata_source(lemma_id, source_id_1)
-        lex_db_integrator.add_lemmata_source(lemma_id, source_id_2)
-        assert lex_db_integrator.get_lemma_sources(lemma_id) == [
+        lex_db_integrator.add_lemma_source(lemma_id, source_id_1)
+        lex_db_integrator.add_lemma_source(lemma_id, source_id_2)
+        assert lex_db_integrator.get_lemma_source(lemma_id) == [
             source_id_1,
             source_id_2,
         ]
 
-    def test_get_lemma_sources_invalid_lemma_id(self, lex_db_integrator):
-        assert lex_db_integrator.get_lemma_sources(-1) == []
+    def test_get_lemma_source_invalid_lemma_id(self, lex_db_integrator):
+        assert lex_db_integrator.get_lemma_source(-1) == []
 
-    def test_get_lemmata_source_ids_valid_ids(self, lex_db_integrator):
+    def test_get_lemma_source_ids_valid_ids(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
         lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
         source_kind_id = lex_db_integrator.add_source_kind("book")
         source_id = lex_db_integrator.add_source("The Hobbit", source_kind_id)
-        lex_db_integrator.add_lemmata_source(lemma_id, source_id)
-        lex_db_integrator.add_lemmata_source(lemma_id, source_id)
+        lex_db_integrator.add_lemma_source(lemma_id, source_id)
+        lex_db_integrator.add_lemma_source(lemma_id, source_id)
         assert (
-            len(lex_db_integrator.get_lemmata_source_ids(lemma_id, source_id))
+            len(lex_db_integrator.get_lemma_source_ids(lemma_id, source_id))
             == 2
         )
 
@@ -307,13 +307,13 @@ class TestExpensiveDbMethods:
             != -1
         )
 
-    def test_get_lemmata_context_ids_invalid_ids(self, lex_db_integrator):
+    def test_get_lemma_context_ids_invalid_ids(self, lex_db_integrator):
         assert (
             lex_db_integrator.get_lemma_context_ids(-1, -1, "NOUN", "NNP")
             == []
         )
 
-    def test_get_lemmata_context_ids_valid_ids(self, lex_db_integrator):
+    def test_get_lemma_context_ids_valid_ids(self, lex_db_integrator):
         status_id = lex_db_integrator.add_status("pending")
         lemma_id = lex_db_integrator.add_lemma("test-lemma", status_id)
         source_kind_id = lex_db_integrator.add_source_kind("book")
@@ -420,9 +420,9 @@ class TestExpensiveDbMethods:
             f"context-remain::{lemma_id_delete}::{lemma_id_remain}",
             source_id_remain,
         )
-        lex_db_integrator.add_lemmata_source(lemma_id_delete, source_id_delete)
-        lex_db_integrator.add_lemmata_source(lemma_id_delete, source_id_remain)
-        lex_db_integrator.add_lemmata_source(lemma_id_remain, source_id_remain)
+        lex_db_integrator.add_lemma_source(lemma_id_delete, source_id_delete)
+        lex_db_integrator.add_lemma_source(lemma_id_delete, source_id_remain)
+        lex_db_integrator.add_lemma_source(lemma_id_remain, source_id_remain)
         lex_db_integrator.add_lemma_context(
             lemma_id_delete, context_id_delete, "NOUN", "NNP"
         )
@@ -433,7 +433,7 @@ class TestExpensiveDbMethods:
             lemma_id_remain, context_id_remain, "NOUN", "NNP"
         )
         assert lex_db_integrator.delete_lemma(lemma_id_delete) is True
-        assert len(lex_db_integrator.get_lemma_sources(lemma_id_delete)) == 0
+        assert len(lex_db_integrator.get_lemma_source(lemma_id_delete)) == 0
         assert len(lex_db_integrator.get_lemma_contexts(lemma_id_delete)) == 0
         assert str(lemma_id_delete) not in lex_db_integrator.get_context(
             context_id_remain

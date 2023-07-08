@@ -4,36 +4,50 @@ db
 Programmatic interface for interacting with the lex database.
 """
 import os
-from typing import Literal, NewType
+from enum import Enum
+from typing import NewType
 
 import MySQLdb
 from dotenv import load_dotenv
 
-Environment = Literal["PROD", "DEV"]
+
+class Environment(Enum):
+    """
+    Represents the environment of the database.
+    """
+
+    PROD = "PROD"
+    DEV = "DEV"
+    DEVADMIN = "DEVADMIN"
+
+
+class UposTag(Enum):
+    """
+    Represents a universal part of speech tag.
+    """
+
+    NOUN = "NOUN"
+    VERB = "VERB"
+    ADJ = "ADJ"
+    ADV = "ADV"
+    PROPN = "PROPN"
+    PRON = "PRON"
+    DET = "DET"
+    ADP = "ADP"
+    NUM = "NUM"
+    CONJ = "CONJ"
+    PRT = "PRT"
+    PUNCT = "PUNCT"
+    X = "X"
+
 
 SourceKindId = NewType("SourceKindId", int)
 SourceId = NewType("SourceId", int)
 StatusId = NewType("StatusId", int)
 LemmaId = NewType("LemmaId", int)
-LemmataSourceId = NewType("LemmataSourceId", int)
+lemmaSourceId = NewType("lemmaSourceId", int)
 ContextId = NewType("ContextId", int)
 LemmaContextId = NewType("LemmaContextId", int)
-
-UposTag = Literal[
-    "NOUN",
-    "VERB",
-    "ADJ",
-    "ADV",
-    "PROPN",
-    "PRON",
-    "DET",
-    "ADP",
-    "NUM",
-    "CONJ",
-    "PRT",
-    "PUNCT",
-    "X",
-]
 
 
 class LexDbIntegrator:
@@ -48,9 +62,9 @@ class LexDbIntegrator:
         self.env = env
 
         load_dotenv()
-        host = os.getenv(f"HOST_{env}")
-        user = os.getenv(f"USERNAME_{env}")
-        passwd = os.getenv(f"PASSWORD_{env}")
+        host = os.getenv(f"HOST_{env.value}")
+        user = os.getenv(f"USERNAME_{env.value}")
+        passwd = os.getenv(f"PASSWORD_{env.value}")
         db = os.getenv("DATABASE")
         ssl_mode = "VERIFY_IDENTITY"
         ssl = {"ca": "/etc/ssl/cert.pem"}
@@ -73,18 +87,16 @@ class LexDbIntegrator:
 
     def empty_all_tables(self):
         """
-        Wipes the database.
-        NOTE: Only to be used on the development branch
-        of the database.
+        Wipes the database rows while preserving the schema.
         """
-        assert self.env == "DEV"
+        assert self.env in [Environment.DEV, Environment.DEVADMIN]
         cursor = self.connection.cursor()
         statements = [
             "DELETE FROM source_kind;",
             "DELETE FROM lemma_status;",
-            "DELETE FROM sources;",
-            "DELETE FROM lemmata;",
-            "DELETE FROM lemmata_sources;",
+            "DELETE FROM source;",
+            "DELETE FROM lemma;",
+            "DELETE FROM lemma_source;",
             "DELETE FROM context;",
             "DELETE FROM lemma_context;",
         ]
@@ -138,8 +150,7 @@ class LexDbIntegrator:
 
         cursor = self.connection.cursor()
         sql = (
-            "INSERT IGNORE INTO sources (title, source_kind_id) VALUES"
-            " (%s, %s)"
+            "INSERT IGNORE INTO source (title, source_kind_id) VALUES (%s, %s)"
         )
         cursor.execute(sql, (title, source_kind_id))
         self.connection.commit()
@@ -153,7 +164,7 @@ class LexDbIntegrator:
         Returns the id of a source. Returns -1 if the source doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT id FROM sources WHERE title = %s AND source_kind_id = %s"
+        sql = "SELECT id FROM source WHERE title = %s AND source_kind_id = %s"
         cursor.execute(sql, (title, source_kind_id))
         source_id = res[0] if (res := cursor.fetchone()) else -1
         cursor.close()
@@ -165,7 +176,7 @@ class LexDbIntegrator:
         exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM sources WHERE id = %s"
+        sql = "SELECT * FROM source WHERE id = %s"
         cursor.execute(sql, (source_id,))
         # TODO: parse into pydantic object
         source_title = res[1] if (res := cursor.fetchone()) else None
@@ -212,7 +223,7 @@ class LexDbIntegrator:
         Returns the status of a lemma. Returns None if the lemma id is invalid
         """
         cursor = self.connection.cursor()
-        sql = "SELECT status_id FROM lemmata WHERE id = %s"
+        sql = "SELECT status_id FROM lemma WHERE id = %s"
         cursor.execute(sql, (lemma_id,))
         status_id = res[0] if (res := cursor.fetchone()) else None
         if not status_id or not self.get_lemma(lemma_id):
@@ -236,7 +247,7 @@ class LexDbIntegrator:
             return lemma_id
 
         cursor = self.connection.cursor()
-        sql = "INSERT INTO lemmata (lemma, status_id) VALUES (%s, %s)"
+        sql = "INSERT INTO lemma (lemma, status_id) VALUES (%s, %s)"
         cursor.execute(sql, (lemma, status_id))
         self.connection.commit()
         cursor.close()
@@ -247,7 +258,7 @@ class LexDbIntegrator:
         Returns the id of a lemma. Returns -1 if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT id FROM lemmata WHERE lemma = %s"
+        sql = "SELECT id FROM lemma WHERE lemma = %s"
         cursor.execute(sql, (lemma,))
         lemma_id = res[0] if (res := cursor.fetchone()) else -1
         cursor.close()
@@ -258,15 +269,15 @@ class LexDbIntegrator:
         Returns the lemma of a lemma. Returns None if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT lemma FROM lemmata WHERE id = %s"
+        sql = "SELECT lemma FROM lemma WHERE id = %s"
         cursor.execute(sql, (lemma_id,))
         lemma = res[0] if (res := cursor.fetchone()) else None
         cursor.close()
         return lemma
 
-    def add_lemmata_source(
+    def add_lemma_source(
         self, lemma_id: LemmaId, source_id: SourceId
-    ) -> LemmataSourceId:
+    ) -> lemmaSourceId:
         """
         Adds a new lemma-source relation to the database.
         """
@@ -274,26 +285,24 @@ class LexDbIntegrator:
         if not self.get_lemma(lemma_id) or not self.get_source_title(
             source_id
         ):
-            return LemmataSourceId(-1)
+            return lemmaSourceId(-1)
 
         cursor = self.connection.cursor()
-        sql = (
-            "INSERT INTO lemmata_sources (lemma_id, source_id) VALUES (%s, %s)"
-        )
+        sql = "INSERT INTO lemma_source (lemma_id, source_id) VALUES (%s, %s)"
         cursor.execute(sql, (lemma_id, source_id))
         self.connection.commit()
         cursor.close()
-        return LemmataSourceId(
-            self.get_lemmata_source_ids(lemma_id, source_id)[-1]
+        return lemmaSourceId(
+            self.get_lemma_source_ids(lemma_id, source_id)[-1]
         )
 
-    def get_lemma_sources(self, lemma_id: LemmaId) -> list[SourceId]:
+    def get_lemma_source(self, lemma_id: LemmaId) -> list[SourceId]:
         """
-        Returns the sources of a lemma. Returns an empty list if the lemma
+        Returns the source of a lemma. Returns an empty list if the lemma
         doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT source_id FROM lemmata_sources WHERE lemma_id = %s"
+        sql = "SELECT source_id FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
         source_ids = [
             SourceId(source_id[0]) for source_id in cursor.fetchall() or []
@@ -301,9 +310,9 @@ class LexDbIntegrator:
         cursor.close()
         return source_ids
 
-    def get_lemmata_source_ids(
+    def get_lemma_source_ids(
         self, lemma_id: LemmaId, source_id: SourceId
-    ) -> list[LemmataSourceId]:
+    ) -> list[lemmaSourceId]:
         """
         Returns the id of a lemma-source relation. Returns -1 if the relation
         doesn't exist.
@@ -311,13 +320,11 @@ class LexDbIntegrator:
         cursor = self.connection.cursor()
 
         sql = (
-            "SELECT id FROM lemmata_sources WHERE lemma_id = %s AND source_id"
+            "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
             " = %s"
         )
         cursor.execute(sql, (lemma_id, source_id))
-        ids = [
-            LemmataSourceId(lemma_id) for lemma_id in cursor.fetchall() or []
-        ]
+        ids = [lemmaSourceId(lemma_id) for lemma_id in cursor.fetchall() or []]
         cursor.close()
         return ids
 
@@ -453,7 +460,7 @@ class LexDbIntegrator:
             return False
 
         cursor = self.connection.cursor()
-        sql = "UPDATE lemmata SET status_id = %s WHERE id = %s"
+        sql = "UPDATE lemma SET status_id = %s WHERE id = %s"
         cursor.execute(sql, (status_id, lemma_id))
         self.connection.commit()
         cursor.close()
@@ -485,26 +492,26 @@ class LexDbIntegrator:
 
         cursor = self.connection.cursor()
 
-        # get all source ids associated with the lemma from lemmata_sources:
-        sql = "SELECT source_id FROM lemmata_sources WHERE lemma_id = %s"
+        # get all source ids associated with the lemma from lemma_source:
+        sql = "SELECT source_id FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
         source_ids = set(cursor.fetchall() or [])
 
-        # delete all entries in lemmat_sources with the lemma id:
-        sql = "DELETE FROM lemmata_sources WHERE lemma_id = %s"
+        # delete all entries in lemmat_source with the lemma id:
+        sql = "DELETE FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
         self.connection.commit()
 
         # for all source_ids, check if there are still entries in the
-        # lemmata_sources table:
+        # lemma_source table:
         for source_id in source_ids:
             cursor.execute(
-                "SELECT id FROM lemmata_sources WHERE source_id = %s",
+                "SELECT id FROM lemma_source WHERE source_id = %s",
                 (source_id,),
             )
             if not cursor.fetchone():
                 cursor.execute(
-                    "DELETE FROM sources WHERE id = %s", (source_id,)
+                    "DELETE FROM source WHERE id = %s", (source_id,)
                 )
                 self.connection.commit()
 
@@ -550,8 +557,8 @@ class LexDbIntegrator:
             )
             self.connection.commit()
 
-        # finally, delete the lemma from the lemmata table:
-        sql = "DELETE FROM lemmata WHERE id = %s"
+        # finally, delete the lemma from the lemma table:
+        sql = "DELETE FROM lemma WHERE id = %s"
         cursor.execute(sql, (lemma_id,))
         self.connection.commit()
 

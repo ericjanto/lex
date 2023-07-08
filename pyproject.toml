@@ -4,15 +4,15 @@ select = [
     "F",  # pyflakes
     "UP", # pyupgrade
 ]
-
-# Same as Black.
-line-length = 79
-
+line-length = 79 # Same as Black.
 target-version = "py311"
+exclude = [
+    "uncommitted",
+]
 
 [tool.black]
 line-length = 79
-experimental-string-processing = true
+preview = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -25,3 +25,6 @@ major_version_zero = true
 [tool.mypy]
 ignore_missing_imports = true
 check_untyped_defs = true
+exclude = [
+    "uncommitted",
+]

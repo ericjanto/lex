@@ -5,7 +5,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS lemmata (
+    IF NOT EXISTS lemma (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         lemma VARCHAR(100) NOT NULL UNIQUE,
         created DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -24,7 +24,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS sources (
+    IF NOT EXISTS source (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
         source_kind_id INTEGER NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS lemmata_sources (
+    IF NOT EXISTS lemma_source (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         lemma_id INTEGER NOT NULL,
         source_id INTEGER NOT NULL

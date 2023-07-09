@@ -70,6 +70,16 @@ class ConfiguredBaseModel(BaseModel):
     class Config:
         use_enum_values = False
 
+    def to_dict(self):
+        data = self.dict()
+        updated = {
+            k: v.isoformat()
+            for k, v in data.items()
+            if isinstance(v, datetime)
+        }
+        data.update(updated)
+        return data
+
 
 class SourceKind(ConfiguredBaseModel):
     id: SourceKindId = SourceKindId(-1)

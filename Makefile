@@ -1,3 +1,5 @@
+PYTHON=python3
+
 apidev:
 	uvicorn api:app --reload
 apiprod:
@@ -10,6 +12,13 @@ dbdev:
 	pscale shell lex development
 dbprod:
 	pscale shell lex production
+setup:
+	conda config --set auto_activate_base False
+	conda env create -f environment.yml
+	conda activate lex
+	mypy --install-types
+setupvalidate:
+	$(PYTHON) -m spacy validate
 testall:
 	pytest
 testlf:

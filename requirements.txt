@@ -2,7 +2,9 @@ black
 black[jupyter]
 commitizen
 ebooklib
+en_core_web_trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.6.1/en_core_web_trf-3.6.1-py3-none-any.whl
 fastapi==0.99.1
+ipywidgets
 mysqlclient
 mypy
 nltk
@@ -10,5 +12,9 @@ pre-commit
 pydantic
 pytest
 python-dotenv
+setuptools
+spacy==3.6.0
+spacy[apple]
 ruff
 uvicorn[standard]==1.3.0
+wheel

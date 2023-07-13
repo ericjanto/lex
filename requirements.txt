@@ -12,6 +12,7 @@ pre-commit
 pydantic
 pytest
 python-dotenv
+typer[all]==0.9.0
 rich==13.4.2
 setuptools
 spacy==3.6.0

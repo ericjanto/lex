@@ -16,7 +16,7 @@ ContextId = NewType("ContextId", int)
 LemmaContextId = NewType("LemmaContextId", int)
 
 
-class Environment(Enum):
+class DbEnvironment(Enum):
     """
     Represents the environment of the database.
     """
@@ -67,17 +67,18 @@ class StatusVal(Enum):
 
 
 class ConfiguredBaseModel(BaseModel):
-    class Config:
-        use_enum_values = False
-
     def to_dict(self):
         data = self.dict()
-        updated = {
+        update_dates = {
             k: v.isoformat()
             for k, v in data.items()
             if isinstance(v, datetime)
         }
-        data.update(updated)
+        update_enums = {
+            k: v.value for k, v in data.items() if isinstance(v, Enum)
+        }
+        data.update(update_dates)
+        data.update(update_enums)
         return data
 
 
@@ -90,6 +91,13 @@ class Source(ConfiguredBaseModel):
     id: SourceId = SourceId(-1)
     title: str
     source_kind_id: SourceKindId
+
+
+class SourceMetadata(BaseModel):
+    author: str
+    title: str
+    language: str
+    source_kind: SourceKindVal
 
 
 class Status(ConfiguredBaseModel):

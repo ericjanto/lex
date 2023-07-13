@@ -13,7 +13,7 @@ from pydantic import parse_obj_as
 from dbtypes import (
     Context,
     ContextId,
-    Environment,
+    DbEnvironment,
     Lemma,
     LemmaContextId,
     LemmaContextRelation,
@@ -37,7 +37,7 @@ class LexDbIntegrator:
     Exposes methods to interact with the database
     """
 
-    def __init__(self, env: Environment) -> None:
+    def __init__(self, env: DbEnvironment) -> None:
         """
         Initializes the database connection
         """
@@ -71,7 +71,7 @@ class LexDbIntegrator:
         """
         Wipes the database rows while preserving the schema.
         """
-        assert self.env in [Environment.DEV, Environment.DEVADMIN]
+        assert self.env in [DbEnvironment.DEV, DbEnvironment.DEVADMIN]
         cursor = self.connection.cursor()
         statements = [
             "TRUNCATE TABLE source_kind;",
@@ -87,17 +87,17 @@ class LexDbIntegrator:
         self.connection.commit()
         cursor.close()
 
-    def add_source_kind(self, source_kind: SourceKind) -> SourceKindId:
+    def add_source_kind(self, source_kind: SourceKindVal) -> SourceKindId:
         """
         Adds a new source kind to the database if it doesn't exist already.
         Returns -1 if invalid source kind.
         """
         cursor = self.connection.cursor()
         sql = "INSERT IGNORE INTO source_kind (kind) VALUES (%s)"
-        cursor.execute(sql, (source_kind.kind.value,))
+        cursor.execute(sql, (source_kind.value,))
         self.connection.commit()
         cursor.close()
-        return SourceKindId(self.get_source_kind_id(source_kind.kind))
+        return SourceKindId(self.get_source_kind_id(source_kind))
 
     def get_source_kind_id(self, source_kind: SourceKindVal) -> SourceKindId:
         """
@@ -329,11 +329,9 @@ class LexDbIntegrator:
         )
         self.connection.commit()
         cursor.close()
-        return LemmaSourceId(
-            self.get_lemma_source_relation_ids(
-                lemma_source_relation.lemma_id, lemma_source_relation.source_id
-            )[-1]
-        )
+        return self.get_lemma_source_relation_ids(
+            lemma_source_relation.lemma_id, lemma_source_relation.source_id
+        )[-1]
 
     def get_lemma_sources(self, lemma_id: LemmaId) -> list[Source]:
         """
@@ -367,7 +365,9 @@ class LexDbIntegrator:
             " = %s"
         )
         cursor.execute(sql, (lemma_id, source_id))
-        ids = [LemmaSourceId(lemma_id) for lemma_id in cursor.fetchall() or []]
+        ids = [
+            LemmaSourceId(lemma_id[0]) for lemma_id in cursor.fetchall() or []
+        ]
         cursor.close()
         return ids
 
@@ -761,4 +761,4 @@ class LexDbIntegrator:
 
 
 if __name__ == "__main__":
-    db = LexDbIntegrator(Environment.DEV)
+    db = LexDbIntegrator(DbEnvironment.DEV)

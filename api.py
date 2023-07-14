@@ -32,7 +32,7 @@ from dbtypes import (
     UposTag,
 )
 
-db = LexDbIntegrator(DbEnvironment.DEV)
+db = LexDbIntegrator(DbEnvironment.DEV)  # TODO: can this be settable?
 app = FastAPI()
 
 
@@ -122,7 +122,6 @@ class ApiRequestor:
         """
         Args:
             env: api environment (dev or prod) to interact with
-                 NOTE: this is not the db env.
         """
         match api_env:
             case ApiEnvironment.DEV:

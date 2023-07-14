@@ -8,3 +8,7 @@ make setup
 
 ## commitizen
 - `cz c` to commit staged files
+
+
+## CLI
+- Autocomplete

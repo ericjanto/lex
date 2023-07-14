@@ -1,6 +1,6 @@
 """
 Text-Parser
-==========
+===========
 Parses text, extracts relevant lemmeta, adds to the vocabulary
 via the API.
 """
@@ -8,6 +8,7 @@ via the API.
 
 import json
 from itertools import islice
+from pathlib import Path
 from typing import NamedTuple
 
 import en_core_web_trf
@@ -55,7 +56,7 @@ class TextParser:
             )
         )
 
-    def parse_into_base_vocab(self, content_path: str):
+    def parse_into_base_vocab(self, content_path: Path):
         """ """
         existing_base_vocab = self._load_vocab(Const.PATH_BASE_VOCAB)
         existing_irrelevant_vocab = self._load_vocab(
@@ -97,8 +98,8 @@ class TextParser:
 
     def parse(
         self,
-        content_path: str,
-        metadata_path: str,
+        content_path: Path,
+        metadata_path: Path,
     ):
         """
         TODO
@@ -184,13 +185,13 @@ class TextParser:
         self.nlp.tokenizer.suffix_search = suffix_regex.search
 
     @staticmethod
-    def _load_metadata(path: str) -> SourceMetadata:
+    def _load_metadata(path: Path) -> SourceMetadata:
         with open(path) as f:
             metadata = json.load(f)
         return SourceMetadata(**metadata)
 
     @staticmethod
-    def _load_vocab(path: str) -> set[str]:
+    def _load_vocab(path: Path) -> set[str]:
         with open(path) as f:
             vocab = set(f.read().split())
         return vocab
@@ -231,7 +232,7 @@ class TextParser:
 if __name__ == "__main__":
     tp = TextParser(ApiEnvironment.DEV)
     tp.parse(
-        "assets/dev-samples/harry-potter.content.txt",
-        "assets/dev-samples/harry-potter.meta.json",
+        Path("assets/dev-samples/harry-potter.content.txt"),
+        Path("assets/dev-samples/harry-potter.meta.json"),
     )
     # tp.parse_into_base_vocab("assets/dev-samples/harry-potter.content.txt")

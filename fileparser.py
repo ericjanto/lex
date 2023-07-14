@@ -1,5 +1,5 @@
 """File Parser
-===========.
+==============
 
 Parses file contents into .txt-format.
 Supports epub only for now.
@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 
 
-class FileParser:
+class ContentExtractor:
     """ """
 
     def __init__(self, path: str) -> None:
@@ -93,6 +93,6 @@ class FileParser:
 
 
 if __name__ == "__main__":
-    fp = FileParser("assets/dev-samples/harry-potter.epub")
+    fp = ContentExtractor("assets/dev-samples/harry-potter.epub")
     fp.parse()
     # fp.clean()

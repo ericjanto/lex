@@ -1,5 +1,7 @@
 PYTHON=python3
 
+lex:
+	$(PYTHON) cli.py
 apidev:
 	uvicorn api:app --reload
 apiprod:

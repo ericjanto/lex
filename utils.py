@@ -3,7 +3,10 @@ Collection of utility methods
 """
 
 
-def buf_count_newlines(path: str) -> int:
+from pathlib import Path
+
+
+def buf_count_newlines(path: Path | str) -> int:
     # https://stackoverflow.com/questions/845058
     def _make_gen(reader):
         while True:

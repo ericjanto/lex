@@ -93,7 +93,7 @@ class Source(ConfiguredBaseModel):
     source_kind_id: SourceKindId
 
 
-class SourceMetadata(BaseModel):
+class SourceMetadata(ConfiguredBaseModel):
     author: str
     title: str
     language: str

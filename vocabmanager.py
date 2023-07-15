@@ -1,11 +1,12 @@
 """
 Vocabulary Manager
 ==================
-Collection of functionality to modify the vocabulary.
+Collection of functionality to show and modify the vocabulary.
 """
 
 from api import ApiEnvironment, ApiRequestor
 from const import Const
+from dbtypes import StatusVal
 from textparser import TextParser
 
 
@@ -26,3 +27,11 @@ class VocabManager:
                 with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f:
                     f.write(f"{lemma}\n")
         return result
+
+    def list_pending_lemma_rows(self, head: int | None = None) -> None:
+        print(self.api.get_pending_lemma_rows(head))
+
+    def accept_lemma(self, lemma: str):
+        pending_status_id = self.api.get_lemma_status(StatusVal.ACCEPTED)
+        lemma_id = self.api.get_lemma_id(lemma)
+        return self.api.update_status(lemma_id, pending_status_id)

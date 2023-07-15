@@ -1,7 +1,7 @@
+.PHONY: apidev apiprod apidocs apischema dbdev dbprod setup setupvalidate testall testlf
+
 PYTHON=python3
 
-lex:
-	$(PYTHON) cli.py
 apidev:
 	uvicorn api:app --reload
 apiprod:
@@ -19,6 +19,7 @@ setup:
 	conda env create -f environment.yml
 	conda activate lex
 	mypy --install-types
+	@$(MAKE) setupvalidate
 setupvalidate:
 	$(PYTHON) -m spacy validate
 testall:

@@ -27,6 +27,7 @@ def db():
     db = LexDbIntegrator(DbEnvironment.DEVADMIN)
     db.truncate_all_tables()
     yield db
+    db.truncate_all_tables()
     db.close_connection()
 
 

@@ -36,7 +36,7 @@ db = LexDbIntegrator(DbEnvironment.DEV)  # TODO: can this be settable?
 app = FastAPI()
 
 
-class ApiEnvironment(Enum):
+class ApiEnvironment(str, Enum):
     PROD = "PROD"
     DEV = "DEV"
 
@@ -67,6 +67,11 @@ def get_lemma_id(lemma: LemmaValue) -> LemmaId:
 @app.get("/lemma_status/{status_val}")
 def get_status_id(status_val: StatusVal) -> StatusId:
     return db.get_status_id(status_val)
+
+
+@app.get("/pending")
+def get_pending_lemma_rows(head: int | None = None) -> str:
+    return db.get_pending_lemma_rows(head=head)
 
 
 @app.post("/lemma")
@@ -113,6 +118,11 @@ def delete_lemma(lemma_id: LemmaId):
     return db.delete_lemma(lemma_id)
 
 
+@app.patch("/status/{lemma_id}")
+def update_status(lemma_id: LemmaId, new_status_id: StatusId):
+    return db.update_lemma_status(lemma_id, new_status_id)
+
+
 class ApiRequestor:
     """
     Encapsulation class for sending HTTP requests to the api.
@@ -137,14 +147,26 @@ class ApiRequestor:
         )
         return LemmaId(r.json()) if r.status_code == 200 else LemmaId(-1)
 
+    def get_lemma_status(self, status_val: StatusVal) -> StatusId:
+        r = requests.get(f"{self.api_url}/lemma_status/{status_val.value}")
+        assert r.status_code == 200
+        return StatusId(r.json())
+
+    def get_pending_lemma_rows(self, head: int | None = None) -> str:
+        r = requests.get(
+            f"{self.api_url}/pending{f'?head={head}' if head else ''}"
+        )
+        assert r.status_code == 200
+        return r.json()
+
     def post_lemma(self, lemma: str, status_id: StatusId) -> LemmaId:
         r = requests.post(
             f"{self.api_url}/lemma",
             json=Lemma(lemma=lemma, status_id=status_id).to_dict(),
         )
         assert r.status_code == 200
-        assert LemmaId(r.json()) != -1
-        return LemmaId(r.json())
+        assert (lid := LemmaId(r.json())) != -1
+        return lid
 
     def post_status(self, status_val: StatusVal) -> StatusId:
         r = requests.post(
@@ -223,5 +245,14 @@ class ApiRequestor:
 
     def delete_lemma(self, lemma_id: LemmaId) -> bool:
         r = requests.delete(f"{self.api_url}/lemma/{lemma_id}")
+        assert r.status_code == 200
+        return r.json()
+
+    def update_status(
+        self, lemma_id: LemmaId, new_status_id: StatusId
+    ) -> bool:
+        r = requests.patch(
+            f"{self.api_url}/status/{lemma_id}?new_status_id={new_status_id}"
+        )
         assert r.status_code == 200
         return r.json()

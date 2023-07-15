@@ -1,64 +1,89 @@
-from enum import Enum
 from pathlib import Path
-from typing import Annotated
+from typing import Optional
 
 import typer
 from rich import print as rprint
 
 from api import ApiEnvironment
+from contentextractor import ContentExtractor
 from textparser import TextParser
 from vocabmanager import VocabManager
 
 cli = typer.Typer()
 
 
-class Action(str, Enum):
-    PARSE_INTO_DB = "dbparse"
-    PARSE_INTO_BASE_VOCABULARY = "bvparse"
-    TRANSFER_LEMMA = "lemtrans"
-
-
-@cli.command()
-def main(
-    action: Annotated[Action, typer.Option(prompt=True)],
-    api_env: ApiEnvironment = ApiEnvironment.DEV.value,  # type: ignore
+@cli.command("add")
+def add(
+    path: Path,
+    bv: bool = False,
+    api_env: str = ApiEnvironment.DEV.value,
 ):
-    if action == Action.TRANSFER_LEMMA:
-        vm = VocabManager(api_env)
-        while True:
-            vm.transfer_lemma_to_irrelevant_vocab(inquire_lemma())
-            if not typer.prompt(
-                text="Transfer more lemmata? [y/n]", type=bool
-            ):
-                break
-    else:
-        path = inquire_path()
-        tp = TextParser(api_env)
-        match action:
-            case Action.PARSE_INTO_DB:
-                meta_path = inquire_path(metadata=True)
-                tp.parse(path, meta_path)
-            case Action.PARSE_INTO_BASE_VOCABULARY:
-                tp.parse_into_base_vocab(path)
-        rprint("[green]Success!")
+    """
+    Parse a new file into the database or base vocabulary (--bv).
+    """
+    api_env = ApiEnvironment[api_env]
 
-
-def inquire_path(metadata: bool = False) -> Path:
-    path = Path(
-        typer.prompt(
-            text=(
-                f"Path to {'metadata' if metadata else 'content'}-file to"
-                " parse"
-            )
-        )
-    )
     if not path.is_file():
-        raise typer.BadParameter("Path could not be resolved")
-    return path
+        raise typer.BadParameter("path")
+
+    extractor = ContentExtractor(str(path))
+    content_path, meta_path = extractor.extract(meta=not bv)
+
+    parser = TextParser(api_env)
+
+    if bv:
+        parser.parse_into_base_vocab(content_path)
+    else:
+        parser.parse_into_db(content_path, meta_path)
+
+    extractor.clean()
 
 
-def inquire_lemma() -> str:
-    return typer.prompt(text="Provide lemma to be transferred", type=str)
+@cli.command("rm")
+def rm(
+    lemma: str,
+    api_env: str = ApiEnvironment.DEV.value,
+):
+    """
+    Remove a lemma and all associated data from the database.
+    """
+    api_env = ApiEnvironment[api_env]
+    vm = VocabManager(api_env)
+    if vm.transfer_lemma_to_irrelevant_vocab(lemma):
+        rprint(f"[green]Successfully removed '{lemma}'.")
+    else:
+        rprint(
+            f"[red]'{lemma}' could not been removed, make sure it is in the"
+            " database"
+        )
+
+
+@cli.command("ls")
+def list(
+    head: Optional[int] = None,  # noqa: UP007
+    api_env: str = ApiEnvironment.DEV.value,
+):
+    """
+    List the top {head} pending lemmata. Retrieves all by default.
+    """
+    api_env = ApiEnvironment[api_env]
+    vm = VocabManager(api_env)
+    vm.list_pending_lemma_rows(head)
+
+
+@cli.command("commit")
+def commit(lemma: str, api_env: str = ApiEnvironment.DEV.value):
+    """
+    Change the status of a lemma from 'pending' to 'accepted'.
+    """
+    api_env = ApiEnvironment[api_env]
+    vm = VocabManager(api_env)
+    if vm.accept_lemma(lemma):
+        rprint(f"[green]Successfully accepted '{lemma}'.")
+    else:
+        rprint(
+            "[red]Unsuccessful. Make sure the lemma exists in the database."
+        )
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from typing import Any
 import MySQLdb
 from dotenv import load_dotenv
 from pydantic import parse_obj_as
+from tabulate import tabulate
 
 from dbtypes import (
     Context,
@@ -272,6 +273,15 @@ class LexDbIntegrator:
         )
         cursor.close()
         return lemma
+
+    def get_pending_lemma_rows(self, head: int | None = None) -> str:
+        pending_id = self.get_status_id(StatusVal.PENDING)
+        cursor = self.connection.cursor()
+        sql = "SELECT * FROM lemma WHERE status_id = %s"
+        cursor.execute(sql, (pending_id,))
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return tabulate(rows[:head], headers=columns)
 
     def get_lemma_id(self, lemma_value: str) -> LemmaId:
         """
@@ -762,3 +772,4 @@ class LexDbIntegrator:
 
 if __name__ == "__main__":
     db = LexDbIntegrator(DbEnvironment.DEV)
+    print(db.get_pending_lemma_rows(10))

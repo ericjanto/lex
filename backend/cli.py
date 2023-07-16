@@ -4,10 +4,10 @@ from typing import Optional
 import typer
 from rich import print as rprint
 
-from api import ApiEnvironment
-from contentextractor import ContentExtractor
-from textparser import TextParser
-from vocabmanager import VocabManager
+from backend.api import ApiEnvironment
+from backend.contentextractor import ContentExtractor
+from backend.textparser import TextParser
+from backend.vocabmanager import VocabManager
 
 cli = typer.Typer()
 

@@ -4,10 +4,10 @@ Vocabulary Manager
 Collection of functionality to show and modify the vocabulary.
 """
 
-from api import ApiEnvironment, ApiRequestor
-from const import Const
-from dbtypes import StatusVal
-from textparser import TextParser
+from backend.api import ApiEnvironment, ApiRequestor
+from backend.const import Const
+from backend.dbtypes import StatusVal
+from backend.textparser import TextParser
 
 
 class VocabManager:

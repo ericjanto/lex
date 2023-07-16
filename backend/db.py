@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from pydantic import parse_obj_as
 from tabulate import tabulate
 
-from dbtypes import (
+from backend.dbtypes import (
     Context,
     ContextId,
     DbEnvironment,

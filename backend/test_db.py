@@ -2,8 +2,8 @@ import subprocess
 
 import pytest
 
-from db import LexDbIntegrator
-from dbtypes import (
+from backend.db import LexDbIntegrator
+from backend.dbtypes import (
     Context,
     ContextId,
     DbEnvironment,

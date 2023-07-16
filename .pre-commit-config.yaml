@@ -9,7 +9,7 @@ repos:
         always_run: true
       - id: mypy
         name: mypy
-        entry: mypy .
+        entry: cd backend && mypy .
         language: system
         pass_filenames: false
         always_run: true

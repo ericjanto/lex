@@ -3,9 +3,9 @@
 PYTHON=python3
 
 apidev:
-	uvicorn api:app --reload
+	uvicorn backend.api:app --reload
 apiprod:
-	gunicorn -k uvicorn.workers.UvicornWorker
+	gunicorn -k uvicorn.workers.UvicornWorker backend.api:app
 apidocs:
 	open http://127.0.0.1:8000/docs
 apischema:
@@ -14,13 +14,14 @@ dbdev:
 	pscale shell lex development
 dbprod:
 	pscale shell lex production
-setup:
+bsetup:
 	conda config --set auto_activate_base False
-	conda env create -f environment.yml
+	conda env create -f backend/environment.yml
 	conda activate lex
+	cd backend
 	mypy --install-types
-	@$(MAKE) setupvalidate
-setupvalidate:
+	@$(MAKE) bsetupvalidate
+bsetupvalidate:
 	$(PYTHON) -m spacy validate
 testall:
 	pytest

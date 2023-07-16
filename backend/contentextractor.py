@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 from ebooklib.epub import EpubBook
 
-from dbtypes import SourceKindVal, SourceMetadata
+from backend.dbtypes import SourceKindVal, SourceMetadata
 
 
 class ContentExtractor:

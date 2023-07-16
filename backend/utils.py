@@ -4,9 +4,10 @@ Collection of utility methods
 
 import os
 from pathlib import Path
+from typing import Union
 
 
-def buf_count_newlines(path: Path | str) -> int:
+def buf_count_newlines(path: Union[Path, str]) -> int:
     # https://stackoverflow.com/questions/845058
     def _make_gen(reader):
         while True:

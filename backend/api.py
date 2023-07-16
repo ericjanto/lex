@@ -5,7 +5,7 @@ Exposes endpoints to interact with the database.
 """
 
 from enum import Enum
-from typing import TypedDict
+from typing import TypedDict, Union
 
 import requests
 from fastapi import FastAPI
@@ -55,7 +55,7 @@ def read_root():
 
 
 @app.get("/lemma/{lemma_id}")
-def get_lemma(lemma_id: LemmaId) -> Lemma | EmptyDict:
+def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
     return db.get_lemma(lemma_id) or EmptyDict()
 
 
@@ -70,7 +70,7 @@ def get_status_id(status_val: StatusVal) -> StatusId:
 
 
 @app.get("/pending")
-def get_pending_lemma_rows(head: int | None = None) -> str:
+def get_pending_lemma_rows(head: Union[int, None] = None) -> str:
     return db.get_pending_lemma_rows(head=head)
 
 
@@ -133,13 +133,10 @@ class ApiRequestor:
         Args:
             env: api environment (dev or prod) to interact with
         """
-        match api_env:
-            case ApiEnvironment.DEV:
-                self.api_url = Const.API_DEV_URL
-            case ApiEnvironment.PROD:
-                raise NotImplementedError
-            case _:
-                raise NotImplementedError
+        if api_env == ApiEnvironment.DEV:
+            self.api_url = Const.API_DEV_URL
+        else:
+            raise NotImplementedError
 
     def get_lemma_id(self, lemma: str) -> LemmaId:
         r = requests.get(
@@ -152,7 +149,7 @@ class ApiRequestor:
         assert r.status_code == 200
         return StatusId(r.json())
 
-    def get_pending_lemma_rows(self, head: int | None = None) -> str:
+    def get_pending_lemma_rows(self, head: Union[int, None] = None) -> str:
         r = requests.get(
             f"{self.api_url}/pending{f'?head={head}' if head else ''}"
         )

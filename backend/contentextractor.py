@@ -40,20 +40,19 @@ class ContentExtractor:
         Args:
             meta: flag to enable metadata extraction
         """
-        match (self.file_extension):
-            case ".epub":
-                self.extract_epub(meta)
-            case ".txt":
-                self.extract_txt(meta)
-            case _:
-                raise NotImplementedError(
-                    f"""
-                    Parsing for files of type {self.file_extension}
-                    is not implemented yet. If this is not
-                    the expected file type, make sure the 
-                    file name is correct.
-                    """
-                )
+        if self.file_extension == ".epub":
+            self.extract_epub(meta)
+        elif self.file_extension == ".txt":
+            self.extract_txt(meta)
+        else:
+            raise NotImplementedError(
+                f"""
+                Parsing for files of type {self.file_extension}
+                is not implemented yet. If this is not
+                the expected file type, make sure the 
+                file name is correct.
+                """
+            )
         return self.content_path, self.meta_path
 
     def extract_epub(self, meta: bool = True) -> None:

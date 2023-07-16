@@ -5,7 +5,7 @@ select = [
     "UP", # pyupgrade
 ]
 line-length = 79 # Same as Black.
-target-version = "py311"
+target-version = "py39"
 exclude = [
     "uncommitted",
 ]

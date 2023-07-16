@@ -4,6 +4,8 @@ Vocabulary Manager
 Collection of functionality to show and modify the vocabulary.
 """
 
+from typing import Union
+
 from backend.api import ApiEnvironment, ApiRequestor
 from backend.const import Const
 from backend.dbtypes import StatusVal
@@ -28,7 +30,7 @@ class VocabManager:
                     f.write(f"{lemma}\n")
         return result
 
-    def list_pending_lemma_rows(self, head: int | None = None) -> None:
+    def list_pending_lemma_rows(self, head: Union[int, None] = None) -> None:
         print(self.api.get_pending_lemma_rows(head))
 
     def accept_lemma(self, lemma: str):

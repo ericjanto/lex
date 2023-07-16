@@ -4,7 +4,7 @@ db
 Programmatic interface for interacting with the lex database.
 """
 import os
-from typing import Any
+from typing import Any, Union
 
 import MySQLdb
 from dotenv import load_dotenv
@@ -113,7 +113,7 @@ class LexDbIntegrator:
 
     def get_source_kind(
         self, source_kind_id: SourceKindId
-    ) -> SourceKind | None:
+    ) -> Union[SourceKind, None]:
         """
         Returns a SourceKind object. Returns None if the kind doesn't
         exist.
@@ -163,7 +163,7 @@ class LexDbIntegrator:
         cursor.close()
         return SourceId(source_id)
 
-    def get_source(self, source_id: SourceId) -> Source | None:
+    def get_source(self, source_id: SourceId) -> Union[Source, None]:
         """
         Returns a Source object. Returns None if the source doesn't
         exist.
@@ -214,7 +214,7 @@ class LexDbIntegrator:
         cursor.close()
         return status_id
 
-    def get_status_by_id(self, status_id: StatusId) -> Status | None:
+    def get_status_by_id(self, status_id: StatusId) -> Union[Status, None]:
         """
         Returns the status of a lemma. Returns None if the status doesn't
         exist.
@@ -250,7 +250,7 @@ class LexDbIntegrator:
         cursor.close()
         return LemmaId(self.get_lemma_id(lemma.lemma))
 
-    def get_lemma(self, lemma_id: LemmaId) -> Lemma | None:
+    def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
         """
         Returns a lemma. Returns None if the lemma doesn't exist.
         """
@@ -274,7 +274,7 @@ class LexDbIntegrator:
         cursor.close()
         return lemma
 
-    def get_pending_lemma_rows(self, head: int | None = None) -> str:
+    def get_pending_lemma_rows(self, head: Union[int, None] = None) -> str:
         pending_id = self.get_status_id(StatusVal.PENDING)
         cursor = self.connection.cursor()
         sql = "SELECT * FROM lemma WHERE status_id = %s"
@@ -310,7 +310,7 @@ class LexDbIntegrator:
         cursor.close()
         return LemmaId(lemma_id)
 
-    def get_lemma_status(self, lemma_id: LemmaId) -> Status | None:
+    def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """
         Returns the status of a lemma. Returns None if the lemma id is invalid
         """
@@ -405,7 +405,7 @@ class LexDbIntegrator:
             self.get_context_id(context.context_value, context.source_id)
         )
 
-    def get_context(self, context_id: ContextId) -> Context | None:
+    def get_context(self, context_id: ContextId) -> Union[Context, None]:
         """
         Returns a context. Returns None if the context doesn't
         exist.
@@ -492,7 +492,7 @@ class LexDbIntegrator:
 
     def get_lemma_context_relation(
         self, lemma_context_id: LemmaContextId
-    ) -> LemmaContextRelation | None:
+    ) -> Union[LemmaContextRelation, None]:
         """
         Returns a lemma-context relation.
         """
@@ -585,7 +585,7 @@ class LexDbIntegrator:
         cursor.close()
         return lemma_context_relations
 
-    def get_status(self, status_id: StatusId) -> Status | None:
+    def get_status(self, status_id: StatusId) -> Union[Status, None]:
         """
         Returns a status.
         """
@@ -631,8 +631,8 @@ class LexDbIntegrator:
     def update_lemma_context_relation(
         self,
         lemma_context_id: LemmaContextId,
-        new_upos_tag: UposTag | None = None,
-        new_detailed_tag: str | None = None,
+        new_upos_tag: Union[UposTag, None] = None,
+        new_detailed_tag: Union[str, None] = None,
     ) -> bool:
         """
         Changes the upos tag of a lemma-context relation.
@@ -644,29 +644,24 @@ class LexDbIntegrator:
         cursor = self.connection.cursor()
 
         args: Any
-        match (new_upos_tag, new_detailed_tag):
-            case (None, None):
-                return False
-            case (_, None):
-                assert new_upos_tag is not None
-                sql = "UPDATE lemma_context SET upos_tag = %s WHERE id = %s"
-                args = (new_upos_tag.value, lemma_context_id)
-            case (None, _):
-                sql = (
-                    "UPDATE lemma_context SET detailed_tag = %s WHERE id = %s"
-                )
-                args = (new_detailed_tag, lemma_context_id)
-            case _:
-                assert new_upos_tag is not None
-                sql = (
-                    "UPDATE lemma_context SET upos_tag = %s, detailed_tag = %s"
-                    " WHERE id = %s"
-                )
-                args = (
-                    new_upos_tag.value,
-                    new_detailed_tag,
-                    lemma_context_id,
-                )
+        if new_upos_tag is None and new_detailed_tag is None:
+            return False
+        elif new_upos_tag is not None and new_detailed_tag is None:
+            sql = "UPDATE lemma_context SET upos_tag = %s WHERE id = %s"
+            args = (new_upos_tag.value, lemma_context_id)
+        elif new_upos_tag is None:
+            sql = "UPDATE lemma_context SET detailed_tag = %s WHERE id = %s"
+            args = (new_detailed_tag, lemma_context_id)
+        else:
+            sql = (
+                "UPDATE lemma_context SET upos_tag = %s, detailed_tag = %s"
+                " WHERE id = %s"
+            )
+            args = (
+                new_upos_tag.value,
+                new_detailed_tag,
+                lemma_context_id,
+            )
 
         cursor.execute(sql, args)
         self.connection.commit()

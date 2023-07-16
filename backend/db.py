@@ -437,6 +437,30 @@ class LexDbIntegrator:
         cursor.close()
         return context
 
+    def get_paginated_contexts(
+        self, page: int, page_size: int
+    ) -> list[Context]:
+        """
+        Returns a list of contexts.
+        """
+        cursor = self.connection.cursor()
+        sql = "SELECT * FROM context ORDER BY id LIMIT %s OFFSET %s"
+        cursor.execute(sql, (page_size, page_size * (page - 1)))
+        contexts = [
+            parse_obj_as(
+                Context,
+                {
+                    "id": res[0],
+                    "context_value": res[1],
+                    "created": res[2],
+                    "source_id": res[3],
+                },
+            )
+            for res in cursor.fetchall()
+        ]
+        cursor.close()
+        return contexts
+
     def get_context_id(
         self, context_value: str, source_id: SourceId
     ) -> ContextId:

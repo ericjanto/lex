@@ -87,6 +87,11 @@ def get_pending_lemma_rows(head: Union[int, None] = None) -> str:
     return db.get_pending_lemma_rows(head=head)
 
 
+@app.get("/contexts")
+def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
+    return db.get_paginated_contexts(page, page_size)
+
+
 @app.post("/lemma")
 def post_lemma(lemma: Lemma) -> LemmaId:
     return db.add_lemma(lemma)

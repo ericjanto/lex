@@ -18,12 +18,9 @@ bsetup:
 	conda config --set auto_activate_base False
 	conda env create -f backend/environment.yml
 	conda activate lex
-	cd backend
-	mypy --install-types
+	(cd backend; mypy --install-types)
 	@$(MAKE) bsetupvalidate
 bsetupvalidate:
 	$(PYTHON) -m spacy validate
-testall:
-	pytest
-testlf:
-	pytest --lf -vv
+frontdev:
+	(cd frontend; pnpm run dev)

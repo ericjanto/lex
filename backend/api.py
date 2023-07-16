@@ -4,12 +4,14 @@ API
 Exposes endpoints to interact with the database.
 """
 
+import os
 from enum import Enum
 from typing import TypedDict, Union
 
 import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
+from rich import print as rprint
 
 from backend.const import Const
 from backend.db import LexDbIntegrator
@@ -32,8 +34,19 @@ from backend.dbtypes import (
     UposTag,
 )
 
-db = LexDbIntegrator(DbEnvironment.DEV)  # TODO: can this be settable?
 app = FastAPI()
+
+
+def set_db_env(env: DbEnvironment):
+    global db
+    rprint(f"[green]Connecting to {env.value} database branch.")
+    db = LexDbIntegrator(env)
+
+
+if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
+    set_db_env(DbEnvironment.PROD)
+else:
+    set_db_env(DbEnvironment.DEV)
 
 
 class ApiEnvironment(str, Enum):

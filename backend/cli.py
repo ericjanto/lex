@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
 
@@ -10,19 +12,18 @@ from backend.textparser import TextParser
 from backend.vocabmanager import VocabManager
 
 cli = typer.Typer()
+global api_env
+api_env = ApiEnvironment.DEV
 
 
 @cli.command("add")
 def add(
     path: Path,
     bv: bool = False,
-    api_env: str = ApiEnvironment.DEV.value,
 ):
     """
     Parse a new file into the database or base vocabulary (--bv).
     """
-    api_env = ApiEnvironment[api_env]
-
     if not path.is_file():
         raise typer.BadParameter("path")
 
@@ -42,12 +43,10 @@ def add(
 @cli.command("rm")
 def rm(
     lemma: str,
-    api_env: str = ApiEnvironment.DEV.value,
 ):
     """
     Remove a lemma and all associated data from the database.
     """
-    api_env = ApiEnvironment[api_env]
     vm = VocabManager(api_env)
     if vm.transfer_lemma_to_irrelevant_vocab(lemma):
         rprint(f"[green]Successfully removed '{lemma}'.")
@@ -61,22 +60,19 @@ def rm(
 @cli.command("ls")
 def list(
     head: Optional[int] = None,  # noqa: UP007
-    api_env: str = ApiEnvironment.DEV.value,
 ):
     """
     List the top {head} pending lemmata. Retrieves all by default.
     """
-    api_env = ApiEnvironment[api_env]
     vm = VocabManager(api_env)
     vm.list_pending_lemma_rows(head)
 
 
 @cli.command("commit")
-def commit(lemma: str, api_env: str = ApiEnvironment.DEV.value):
+def commit(lemma: str):
     """
     Change the status of a lemma from 'pending' to 'accepted'.
     """
-    api_env = ApiEnvironment[api_env]
     vm = VocabManager(api_env)
     if vm.accept_lemma(lemma):
         rprint(f"[green]Successfully accepted '{lemma}'.")
@@ -86,5 +82,18 @@ def commit(lemma: str, api_env: str = ApiEnvironment.DEV.value):
         )
 
 
+def set_api_env():
+    """
+    Set the API environment to production or development.
+    """
+    api_env = typer.prompt(
+        "Which API environment would you like to connect to?",
+        type=ApiEnvironment,
+        default=ApiEnvironment.DEV,
+    )
+    rprint(f"[green]Communicating with {api_env.value} API.")
+
+
 if __name__ == "__main__":
+    set_api_env()
     cli()

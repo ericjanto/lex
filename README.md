@@ -17,6 +17,9 @@ make setup
 ## commitizen
 - `cz c` to commit staged files
 
+## DB
+- make dbdev
+- source backend/db/schema.sql
 
 ## CLI
 - Autocomplete

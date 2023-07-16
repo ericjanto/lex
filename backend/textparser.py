@@ -105,7 +105,9 @@ class TextParser:
         TODO
         """
         existing_base_vocab = self._load_vocab(Const.PATH_BASE_VOCAB)
-        existing_irrelevant_vocab = self._load_vocab(Const.PATH_BASE_VOCAB)
+        existing_irrelevant_vocab = self._load_vocab(
+            Const.PATH_IRRELEVANT_VOCAB
+        )
 
         source_metadata = self._load_metadata(metadata_path)
 

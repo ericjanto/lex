@@ -13,7 +13,7 @@ apischema:
 dbdev:
 	pscale shell lex development
 dbprod:
-	pscale shell lex production
+	pscale shell lex main
 bsetup:
 	conda config --set auto_activate_base False
 	conda env create -f backend/environment.yml

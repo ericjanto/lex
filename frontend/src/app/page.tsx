@@ -3,7 +3,7 @@ import Link from "next/link";
 // fetch data
 async function getData() {
   const res = await fetch(
-    "http://127.0.0.1:8000/contexts?page=1&page_size=250"
+    "http://127.0.0.1:8000/contexts?page=1&page_size=500"
   );
   // The return value is *not* serialized
   // You can return Date, Map, Set, etc.
@@ -33,11 +33,17 @@ function deserialiseContextValue(contextValue: string): JSX.Element[] {
   const contextValueArrDeserialised = contextValueArr.map((value: string) => {
     if (value.includes("::")) {
       let [word, id] = value.split("::");
+      let space = "";
       if (id.endsWith(" ")) {
         id.trimEnd();
-        word += " ";
+        space += " ";
       }
-      return <Link href={`/lemma/${id}`}>{word}</Link>;
+      return (
+        <>
+          <Link href={`/lemma/${id}`}>{word}</Link>
+          {space}
+        </>
+      );
     }
     return `${value}`;
   });
@@ -51,7 +57,7 @@ export default async function Page() {
       {data.map((item: any) => {
         return (
           <span>
-            <span style={{color: '#919191'}}>{" § "}</span>
+            <span style={{ color: "#919191" }}>{" § "}</span>
             {deserialiseContextValue(item.context_value)}
           </span>
         );

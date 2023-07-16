@@ -1,4 +1,4 @@
-name: lex
+name: lex-backend
 channels:
   - conda-forge
 dependencies:

@@ -20,6 +20,7 @@ from backend.dbtypes import (
     StatusVal,
     UposTag,
 )
+from backend.utils import relativy_path
 
 
 @pytest.fixture
@@ -33,7 +34,9 @@ def db():
 
 db_changed = pytest.mark.skipif(
     condition=not bool(
-        subprocess.run(["git", "diff", "--exit-code", "db.py"]).returncode
+        subprocess.run(
+            ["git", "diff", "--exit-code", relativy_path("db.py")]
+        ).returncode
     ),
     reason="db.py has not changed",
 )

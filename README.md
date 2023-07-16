@@ -6,6 +6,14 @@ Lex is a vocabulary management system for personal use.
 make setup
 ```
 
+- conda activate lex-backend
+- cd backend
+- mypy .
+- mypy --install-types
+- pre-commit install
+- make bsetupvalidate
+- env file
+
 ## commitizen
 - `cz c` to commit staged files
 

@@ -20,5 +20,5 @@ spacy==3.6.0
 spacy[apple]
 types-requests
 ruff
-uvicorn[standard]==1.3.0
+uvicorn[standard]
 wheel

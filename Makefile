@@ -22,5 +22,5 @@ bsetup:
 	@$(MAKE) bsetupvalidate
 bsetupvalidate:
 	$(PYTHON) -m spacy validate
-frontdev:
+fdev:
 	(cd frontend; pnpm run dev)

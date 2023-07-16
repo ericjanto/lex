@@ -1,4 +1,4 @@
 dev-samples
-.env
+.env*
 uncommitted
 __pycache__

@@ -23,4 +23,6 @@ make setup
 
 ## To write up
 - Add lex to Python path for internal module use
-- deta space deployed backend
+- deployment
+  - backend: deta space
+    - hacky workaround: comment out spacy transformer lib

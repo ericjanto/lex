@@ -6,7 +6,7 @@ Programmatic interface for interacting with the lex database.
 import os
 from typing import Any, Union
 
-import MySQLdb
+import mysql.connector
 from dotenv import load_dotenv
 from pydantic import parse_obj_as
 from tabulate import tabulate
@@ -49,18 +49,26 @@ class LexDbIntegrator:
         user = os.getenv(f"USERNAME_{env.value}")
         passwd = os.getenv(f"PASSWORD_{env.value}")
         db = os.getenv("DATABASE")
-        ssl_mode = "VERIFY_IDENTITY"
-        ssl = {"ca": "/etc/ssl/cert.pem"}
 
-        self.connection = MySQLdb.connect(
+        self.connection = mysql.connector.connect(
             host=host,
             user=user,
             passwd=passwd,
             db=db,
             autocommit=True,
-            ssl_mode=ssl_mode,
-            ssl=ssl,
+            # ssl_mode=ssl_mode,
+            # ssl=ssl,
         )
+
+        # self.connection = MySQLdb.connect(
+        #     host=host,
+        #     user=user,
+        #     passwd=passwd,
+        #     db=db,
+        #     autocommit=True,
+        #     ssl_mode=ssl_mode,
+        #     ssl=ssl,
+        # )
 
     def close_connection(self):
         """
@@ -692,9 +700,7 @@ class LexDbIntegrator:
         # get all source ids associated with the lemma from lemma_source:
         sql = "SELECT source_id FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
-        source_ids = set(
-            cursor.fetchall() or []
-        )  # TODO: check if fetchall returns None or [] by default
+        source_ids = {t[0] for t in cursor.fetchall() or []}
 
         # delete all entries in lemmat_source with the lemma id:
         sql = "DELETE FROM lemma_source WHERE lemma_id = %s"
@@ -703,12 +709,12 @@ class LexDbIntegrator:
 
         # for all source_ids, check if there are still entries in the
         # lemma_source table:
-        for source_id in source_ids:
+        for source_id in source_ids:  # NOTE: this is already [(sid,),...]
             cursor.execute(
                 "SELECT id FROM lemma_source WHERE source_id = %s",
                 (source_id,),
             )
-            if not cursor.fetchone():
+            if not cursor.fetchall():
                 cursor.execute(
                     "DELETE FROM source WHERE id = %s", (source_id,)
                 )
@@ -717,7 +723,7 @@ class LexDbIntegrator:
         # get all context ids associated with the lemma from lemma_context:
         sql = "SELECT context_id FROM lemma_context WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
-        context_ids = set(cursor.fetchall() or [])
+        context_ids = {t[0] for t in cursor.fetchall() or []}
 
         # delete all entries in lemma_context with the lemma id:
         sql = "DELETE FROM lemma_context WHERE lemma_id = %s"
@@ -733,7 +739,7 @@ class LexDbIntegrator:
                 "SELECT id FROM lemma_context WHERE context_id = %s",
                 (context_id,),
             )
-            if not cursor.fetchone():
+            if not cursor.fetchall():
                 cursor.execute(
                     "DELETE FROM context WHERE id = %s", (context_id,)
                 )
@@ -748,7 +754,7 @@ class LexDbIntegrator:
                 "SELECT context_value FROM context WHERE id = %s",
                 (context_id,),
             )
-            context_value = cursor.fetchone()[0]
+            context_value = cursor.fetchall()[0][0]
             context_value = context_value.replace(f"::{lemma_id}", "")
             cursor.execute(
                 "UPDATE context SET context_value = %s WHERE id = %s",
@@ -767,4 +773,4 @@ class LexDbIntegrator:
 
 if __name__ == "__main__":
     db = LexDbIntegrator(DbEnvironment.DEV)
-    print(db.get_pending_lemma_rows(10))
+    # print(db.get_pending_lemma_rows(10))

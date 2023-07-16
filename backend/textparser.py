@@ -94,6 +94,7 @@ class TextParser:
         with open(Const.PATH_BASE_VOCAB, "a") as f:
             for lemma in new_base_vocab:
                 f.write(f"{lemma}\n")
+            f.write("\n")
 
     def parse_into_db(
         self,

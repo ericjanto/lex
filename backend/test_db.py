@@ -44,13 +44,13 @@ db_changed = pytest.mark.skipif(
 
 class TestInexpensiveDbMethods:
     def test_connection_initialisation(self, db: LexDbIntegrator):
-        assert db.connection.open
+        assert db.connection.is_connected()
 
     def test_close_connection(self):
         db = LexDbIntegrator(DbEnvironment.DEV)
-        assert not db.connection.closed
+        assert db.connection.is_connected()
         db.close_connection()
-        assert db.connection.closed
+        assert not db.connection.is_connected()
 
     def test_empty_all_tables_prod_fail(self):
         db = LexDbIntegrator(DbEnvironment.PROD)

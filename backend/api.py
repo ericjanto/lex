@@ -92,6 +92,11 @@ def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
     return db.get_paginated_contexts(page, page_size)
 
 
+@app.get("/lemma_contexts/{lemma_id}")
+def get_lemma_contexts(lemma_id: LemmaId) -> list[Context]:
+    return db.get_lemma_contexts(lemma_id)
+
+
 @app.post("/lemma")
 def post_lemma(lemma: Lemma) -> LemmaId:
     return db.add_lemma(lemma)

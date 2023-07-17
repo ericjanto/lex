@@ -556,7 +556,7 @@ class LexDbIntegrator:
         sql = "SELECT * FROM lemma_context WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
 
-        context_ids = [
+        context_ids = set(
             parse_obj_as(
                 LemmaContextRelation,
                 {
@@ -568,7 +568,7 @@ class LexDbIntegrator:
                 },
             ).context_id
             for res in cursor.fetchall()
-        ]
+        )
         return [
             context
             for context in (
@@ -735,7 +735,7 @@ class LexDbIntegrator:
         # lemma_source table:
         for source_id in source_ids:  # NOTE: this is already [(sid,),...]
             cursor.execute(
-                "SELECT id FROM lemma_source WHERE source_id = %s",
+                "SELECT id FROM lemma_source WHERE source_id = %s LIMIT 1",
                 (source_id,),
             )
             if not cursor.fetchall():
@@ -760,7 +760,7 @@ class LexDbIntegrator:
         kept_context_ids = set()
         for context_id in context_ids:
             cursor.execute(
-                "SELECT id FROM lemma_context WHERE context_id = %s",
+                "SELECT id FROM lemma_context WHERE context_id = %s LIMIT 1",
                 (context_id,),
             )
             if not cursor.fetchall():
@@ -775,7 +775,7 @@ class LexDbIntegrator:
         # from it
         for context_id in kept_context_ids:
             cursor.execute(
-                "SELECT context_value FROM context WHERE id = %s",
+                "SELECT context_value FROM context WHERE id = %s LIMIT 1",
                 (context_id,),
             )
             context_value = cursor.fetchall()[0][0]

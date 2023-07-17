@@ -277,6 +277,27 @@ class TestExpensiveDbMethods:
             != -1
         )
 
+    def test_add_lemma_source_multiple_return_ids(self, db: LexDbIntegrator):
+        db.truncate_all_tables()
+        status_id = db.add_status(StatusVal.PENDING)
+        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source_id = db.add_source(
+            Source(title="The Hobbit", source_kind_id=source_kind_id)
+        )
+        assert (
+            db.add_lemma_source_relation(
+                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
+            )
+            == 1
+        )
+        assert (
+            db.add_lemma_source_relation(
+                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
+            )
+            == 2
+        )
+
     def test_get_lemma_source_ids_invalid_ids(self, db: LexDbIntegrator):
         assert (
             db.get_lemma_source_relation_ids(LemmaId(-1), SourceId(-1)) == []

@@ -105,8 +105,10 @@ class LexDbIntegrator:
         sql = "INSERT IGNORE INTO source_kind (kind) VALUES (%s)"
         cursor.execute(sql, (source_kind.value,))
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        skid = SourceKindId(cursor.fetchall()[0][0])
         cursor.close()
-        return SourceKindId(self.get_source_kind_id(source_kind))
+        return skid
 
     def get_source_kind_id(self, source_kind: SourceKindVal) -> SourceKindId:
         """
@@ -153,10 +155,10 @@ class LexDbIntegrator:
         )
         cursor.execute(sql, (source.title, source.source_kind_id))
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        sid = SourceId(cursor.fetchall()[0][0])
         cursor.close()
-        return SourceId(
-            self.get_source_id(source.title, source.source_kind_id)
-        )
+        return sid
 
     def get_source_id(
         self, title: str, source_kind_id: SourceKindId
@@ -201,8 +203,10 @@ class LexDbIntegrator:
         sql = "INSERT IGNORE INTO lemma_status (status) VALUES (%s)"
         cursor.execute(sql, (status_val.value,))
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        sid = StatusId(cursor.fetchall()[0][0])
         cursor.close()
-        return StatusId(self.get_status_id(status_val))
+        return sid
 
     def get_status_id(self, status_val: StatusVal) -> StatusId:
         """
@@ -255,8 +259,10 @@ class LexDbIntegrator:
         sql = "INSERT INTO lemma (lemma, status_id) VALUES (%s, %s)"
         cursor.execute(sql, (lemma.lemma, lemma.status_id))
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        lemma_id = LemmaId(cursor.fetchall()[0][0])
         cursor.close()
-        return LemmaId(self.get_lemma_id(lemma.lemma))
+        return lemma_id
 
     def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
         """
@@ -346,10 +352,10 @@ class LexDbIntegrator:
             (lemma_source_relation.lemma_id, lemma_source_relation.source_id),
         )
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        lemma_source_id = LemmaSourceId(cursor.fetchall()[0][0])
         cursor.close()
-        return self.get_lemma_source_relation_ids(
-            lemma_source_relation.lemma_id, lemma_source_relation.source_id
-        )[-1]
+        return lemma_source_id
 
     def get_lemma_sources(self, lemma_id: LemmaId) -> list[Source]:
         """
@@ -371,21 +377,36 @@ class LexDbIntegrator:
         ]
 
     def get_lemma_source_relation_ids(
-        self, lemma_id: LemmaId, source_id: SourceId
+        self,
+        lemma_id: LemmaId,
+        source_id: SourceId,
+        limit: Union[int, None] = None,
     ) -> list[LemmaSourceId]:
         """
         Returns the ids of all lemma-source relations.
+        NOTE: this is a very expensive db operation.
         """
         cursor = self.connection.cursor()
 
-        sql = (
-            "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
-            " = %s"
-        )
-        cursor.execute(sql, (lemma_id, source_id))
-        ids = [
-            LemmaSourceId(lemma_id[0]) for lemma_id in cursor.fetchall() or []
-        ]
+        if limit is not None:
+            sql = (
+                "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
+                " = %s ORDER BY id DESC LIMIT %s"
+            )
+            cursor.execute(sql, (lemma_id, source_id, limit))
+            ids = [
+                LemmaSourceId(lemma_id[0]) for lemma_id in cursor.fetchall()
+            ]
+        else:
+            sql = (
+                "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
+                " = %s"
+            )
+            cursor.execute(sql, (lemma_id, source_id))
+            ids = [
+                LemmaSourceId(lemma_id[0])
+                for lemma_id in cursor.fetchall() or []
+            ]
         cursor.close()
         return ids
 
@@ -408,10 +429,10 @@ class LexDbIntegrator:
         sql = "INSERT INTO context (context_value, source_id) VALUES (%s, %s)"
         cursor.execute(sql, (context.context_value, context.source_id))
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        ctid = ContextId(cursor.fetchall()[0][0])
         cursor.close()
-        return ContextId(
-            self.get_context_id(context.context_value, context.source_id)
-        )
+        return ctid
 
     def get_context(self, context_id: ContextId) -> Union[Context, None]:
         """
@@ -516,11 +537,10 @@ class LexDbIntegrator:
             (*d.values(),),
         )
         self.connection.commit()
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        lcid = LemmaContextId(cursor.fetchall()[0][0])
         cursor.close()
-        return LemmaContextId(
-            self.get_lemma_context_relations(lemma_context)[-1].id
-            # TODO: verify that the last id is always the one we just added
-        )
+        return lcid
 
     def get_lemma_context_relation(
         self, lemma_context_id: LemmaContextId
@@ -556,7 +576,7 @@ class LexDbIntegrator:
         sql = "SELECT * FROM lemma_context WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
 
-        context_ids = set(
+        context_ids = {
             parse_obj_as(
                 LemmaContextRelation,
                 {
@@ -568,7 +588,7 @@ class LexDbIntegrator:
                 },
             ).context_id
             for res in cursor.fetchall()
-        )
+        }
         return [
             context
             for context in (

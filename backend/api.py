@@ -55,7 +55,7 @@ def set_db_env(env: DbEnvironment):
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
     set_db_env(DbEnvironment.PROD)
 else:
-    set_db_env(DbEnvironment.PROD)
+    set_db_env(DbEnvironment.DEV)
 
 
 class ApiEnvironment(str, Enum):
@@ -72,27 +72,27 @@ class LemmaValue(BaseModel):
 
 
 @app.get("/")
-def read_root():
+async def read_root():
     return {"api_status": "working"}
 
 
 @app.get("/lemma/{lemma_id}")
-def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
+async def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
     return db.get_lemma(lemma_id) or EmptyDict()
 
 
 @app.get("/lemma_id")
-def get_lemma_id(lemma: LemmaValue) -> LemmaId:
+async def get_lemma_id(lemma: LemmaValue) -> LemmaId:
     return db.get_lemma_id(lemma.value)
 
 
 @app.get("/lemma_status/{status_val}")
-def get_status_id(status_val: StatusVal) -> StatusId:
+async def get_status_id(status_val: StatusVal) -> StatusId:
     return db.get_status_id(status_val)
 
 
 @app.get("/pending")
-def get_pending_lemma_rows(
+async def get_pending_lemma_rows(
     page: Union[int, None], page_size: Union[int, None] = None
 ) -> str:
     return db.get_pending_lemma_rows(page=page, page_size=page_size)
@@ -104,56 +104,56 @@ async def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
 
 
 @app.get("/lemma_contexts/{lemma_id}")
-def get_lemma_contexts(lemma_id: LemmaId) -> list[Context]:
+async def get_lemma_contexts(lemma_id: LemmaId) -> list[Context]:
     return db.get_lemma_contexts(lemma_id)
 
 
 @app.post("/lemma")
-def post_lemma(lemma: Lemma) -> LemmaId:
+async def post_lemma(lemma: Lemma) -> LemmaId:
     return db.add_lemma(lemma)
 
 
 @app.post("/lemma_status")
-def post_status(status_val: StatusVal) -> StatusId:
+async def post_status(status_val: StatusVal) -> StatusId:
     return db.add_status(status_val)
 
 
 @app.post("/lemma_source")
-def post_lemma_source_relation(
+async def post_lemma_source_relation(
     lemma_source_relation: LemmaSourceRelation,
 ) -> LemmaSourceId:
     return db.add_lemma_source_relation(lemma_source_relation)
 
 
 @app.post("/source_kind")
-def post_source_kind(source_kind_val: SourceKindVal) -> SourceKindId:
+async def post_source_kind(source_kind_val: SourceKindVal) -> SourceKindId:
     return db.add_source_kind(source_kind_val)
 
 
 @app.post("/source")
-def post_source(source: Source) -> SourceId:
+async def post_source(source: Source) -> SourceId:
     return db.add_source(source)
 
 
 @app.post("/context")
-def post_context(context: Context) -> ContextId:
+async def post_context(context: Context) -> ContextId:
     return db.add_context(context)
 
 
 @app.post("/lemma_context")
-def post_lemma_context_relation(
+async def post_lemma_context_relation(
     lemma_context_relation: LemmaContextRelation,
 ) -> LemmaContextId:
     return db.add_lemma_context_relation(lemma_context_relation)
 
 
 @app.delete("/lemma")
-def delete_lemma(lemma_ids: list[LemmaId]):
+async def delete_lemma(lemma_ids: list[LemmaId]):
     return all(db.delete_lemma(lid) for lid in lemma_ids)
 
 
 @app.patch("/status")
-def update_status(lemma_ids: list[LemmaId], new_status_id: StatusId):
+async def update_status(lemma_ids: list[LemmaId], new_status_id: StatusId):
     return db.update_lemmata_status(lemma_ids, new_status_id)
 
 

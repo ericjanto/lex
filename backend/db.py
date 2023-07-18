@@ -282,7 +282,7 @@ class LexDbIntegrator:
                     "status_id": res[3],
                 },
             )
-            if (res := cursor.fetchone())
+            if (res := (cursor.fetchall() or [[]])[0])
             else None
         )
         cursor.close()

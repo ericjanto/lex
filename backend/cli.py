@@ -91,7 +91,8 @@ def commit(lemma: str):
 @cli.command("commitm")
 def commitm(lemma_ids: list[int]):
     """
-    Change the status of a lemma from 'pending' to 'accepted'.
+    Change the status of all lemma referenced by the passed IDs from 'pending'
+    to 'accepted'.
     """
     vm = VocabManager(api_env)
     if vm.accept_lemmata([LemmaId(lid) for lid in lemma_ids]):

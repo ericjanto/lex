@@ -10,6 +10,7 @@ from typing import TypedDict, Union
 
 import requests
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from rich import print as rprint
 
@@ -34,7 +35,15 @@ from backend.dbtypes import (
     UposTag,
 )
 
+origins = ["*"]
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def set_db_env(env: DbEnvironment):
@@ -46,7 +55,7 @@ def set_db_env(env: DbEnvironment):
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
     set_db_env(DbEnvironment.PROD)
 else:
-    set_db_env(DbEnvironment.DEV)
+    set_db_env(DbEnvironment.PROD)
 
 
 class ApiEnvironment(str, Enum):
@@ -90,7 +99,7 @@ def get_pending_lemma_rows(
 
 
 @app.get("/contexts")
-def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
+async def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
     return db.get_paginated_contexts(page, page_size)
 
 

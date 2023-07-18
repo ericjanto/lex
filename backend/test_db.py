@@ -473,7 +473,7 @@ class TestExpensiveDbMethods:
 
     def test_update_lemma_status_invalid_id(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.PENDING)
-        assert db.update_lemma_status([LemmaId(-1)], status_id) is False
+        assert db.update_lemmata_status([LemmaId(-1)], status_id) is False
 
     def test_update_lemma_status_valid_ids(self, db: LexDbIntegrator):
         old_status_id = db.add_status(StatusVal.PENDING)
@@ -481,7 +481,7 @@ class TestExpensiveDbMethods:
         lemma_id = db.add_lemma(
             Lemma(lemma="test_lemma", status_id=old_status_id)
         )
-        assert db.update_lemma_status([lemma_id], new_status_id)
+        assert db.update_lemmata_status([lemma_id], new_status_id)
 
     def test_change_lemma_context_upos_tag_invalid_ids(
         self, db: LexDbIntegrator

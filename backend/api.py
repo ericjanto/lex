@@ -138,14 +138,14 @@ def post_lemma_context_relation(
     return db.add_lemma_context_relation(lemma_context_relation)
 
 
-@app.delete("/lemma/{lemma_id}")
-def delete_lemma(lemma_id: LemmaId):
-    return db.delete_lemma(lemma_id)
+@app.delete("/lemma")
+def delete_lemma(lemma_ids: list[LemmaId]):
+    return all(db.delete_lemma(lid) for lid in lemma_ids)
 
 
-@app.patch("/status/{lemma_id}")
-def update_status(lemma_id: LemmaId, new_status_id: StatusId):
-    return db.update_lemma_status(lemma_id, new_status_id)
+@app.patch("/status")
+def update_status(lemma_ids: list[LemmaId], new_status_id: StatusId):
+    return db.update_lemmata_status(lemma_ids, new_status_id)
 
 
 class ApiRequestor:
@@ -162,6 +162,10 @@ class ApiRequestor:
             self.api_url = Const.API_DEV_URL
         else:
             raise NotImplementedError
+
+    def get_lemma_name(self, lemma_id: LemmaId) -> str:
+        r = requests.get(f"{self.api_url}/lemma/{lemma_id}")
+        return Lemma(**dict(r.json())).lemma if r.status_code == 200 else ""
 
     def get_lemma_id(self, lemma: str) -> LemmaId:
         r = requests.get(
@@ -271,16 +275,17 @@ class ApiRequestor:
         assert (lsid := LemmaSourceId(r.json())) != -1
         return lsid
 
-    def delete_lemma(self, lemma_id: LemmaId) -> bool:
-        r = requests.delete(f"{self.api_url}/lemma/{lemma_id}")
+    def delete_lemmata(self, lemma_ids: list[LemmaId]) -> bool:
+        r = requests.delete(f"{self.api_url}/lemma", json=lemma_ids)
         assert r.status_code == 200
         return r.json()
 
-    def update_status(
-        self, lemma_id: LemmaId, new_status_id: StatusId
+    def update_multiple_status(
+        self, lemma_ids: list[LemmaId], new_status_id: StatusId
     ) -> bool:
         r = requests.patch(
-            f"{self.api_url}/status/{lemma_id}?new_status_id={new_status_id}"
+            f"{self.api_url}/status?new_status_id={new_status_id}",
+            json=lemma_ids,
         )
         assert r.status_code == 200
         return r.json()

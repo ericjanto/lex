@@ -668,7 +668,7 @@ class LexDbIntegrator:
         cursor.close()
         return status
 
-    def update_lemma_status(
+    def update_lemmata_status(
         self, lemma_ids: list[LemmaId], new_status_id: StatusId
     ) -> bool:
         """

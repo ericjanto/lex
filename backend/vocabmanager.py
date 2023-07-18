@@ -30,8 +30,10 @@ class VocabManager:
                     f.write(f"{lemma}\n")
         return result
 
-    def list_pending_lemma_rows(self, head: Union[int, None] = None) -> None:
-        print(self.api.get_pending_lemma_rows(head))
+    def list_pending_lemma_rows(
+        self, page: int = 1, page_size: Union[int, None] = None
+    ) -> None:
+        print(self.api.get_pending_lemma_rows(page=page, page_size=page_size))
 
     def accept_lemma(self, lemma: str):
         pending_status_id = self.api.get_lemma_status(StatusVal.ACCEPTED)

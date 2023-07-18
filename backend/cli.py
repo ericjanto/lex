@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich import print as rprint
@@ -59,13 +58,13 @@ def rm(
 
 @cli.command("ls")
 def list(
-    head: Optional[int] = None,  # noqa: UP007
+    head: int = 25,
 ):
     """
-    List the top {head} pending lemmata. Retrieves all by default.
+    List the top {head} pending lemmata.
     """
     vm = VocabManager(api_env)
-    vm.list_pending_lemma_rows(head)
+    vm.list_pending_lemma_rows(page_size=head)
 
 
 @cli.command("commit")

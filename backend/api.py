@@ -83,8 +83,10 @@ def get_status_id(status_val: StatusVal) -> StatusId:
 
 
 @app.get("/pending")
-def get_pending_lemma_rows(head: Union[int, None] = None) -> str:
-    return db.get_pending_lemma_rows(head=head)
+def get_pending_lemma_rows(
+    page: Union[int, None], page_size: Union[int, None] = None
+) -> str:
+    return db.get_pending_lemma_rows(page=page, page_size=page_size)
 
 
 @app.get("/contexts")
@@ -172,10 +174,16 @@ class ApiRequestor:
         assert r.status_code == 200
         return StatusId(r.json())
 
-    def get_pending_lemma_rows(self, head: Union[int, None] = None) -> str:
-        r = requests.get(
-            f"{self.api_url}/pending{f'?head={head}' if head else ''}"
-        )
+    def get_pending_lemma_rows(
+        self, page: Union[int, None] = None, page_size: Union[int, None] = None
+    ) -> str:
+        query_params = {}
+        # Add page and page_size query params if provided
+        if page:
+            query_params["page"] = page
+        if page_size:
+            query_params["page_size"] = page_size
+        r = requests.get(f"{self.api_url}/pending", params=query_params)
         assert r.status_code == 200
         return r.json()
 

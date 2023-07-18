@@ -288,14 +288,24 @@ class LexDbIntegrator:
         cursor.close()
         return lemma
 
-    def get_pending_lemma_rows(self, head: Union[int, None] = None) -> str:
+    def get_pending_lemma_rows(
+        self, page: int = 1, page_size: Union[int, None] = None
+    ) -> str:
         pending_id = self.get_status_id(StatusVal.PENDING)
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE status_id = %s"
-        cursor.execute(sql, (pending_id,))
+
+        if page and page_size:
+            limit = page_size
+            offset = (page - 1) * page_size
+            sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
+            cursor.execute(sql, (pending_id, limit, offset))
+        else:
+            sql = "SELECT * FROM lemma WHERE status_id = %s"
+            cursor.execute(sql, (pending_id,))
+
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-        return tabulate(rows[:head], headers=columns)
+        return tabulate(rows, headers=columns)
 
     def get_lemma_id(self, lemma_value: str) -> LemmaId:
         """
@@ -659,23 +669,28 @@ class LexDbIntegrator:
         return status
 
     def update_lemma_status(
-        self, lemma_id: LemmaId, new_status_id: StatusId
+        self, lemma_ids: list[LemmaId], new_status_id: StatusId
     ) -> bool:
         """
-        Changes the status of a lemma.
+        Changes the status of all lemmata in the list.
+        Doesn't update any of them if one of the ids doesn't exist.
         """
-        if (
-            not self.get_lemma(lemma_id)
-            or self.get_status(new_status_id) == -1
-        ):
+        if self.get_status(new_status_id) == -1:
             return False
 
+        for lid in lemma_ids:
+            if not self.get_lemma(lid):
+                return False
+
         cursor = self.connection.cursor()
-        sql = "UPDATE lemma SET status_id = %s WHERE id = %s"
-        cursor.execute(sql, (new_status_id, lemma_id))
+        sql = (
+            "UPDATE lemma SET status_id = %s WHERE id IN"
+            f" ({','.join(map(str, lemma_ids))})"
+        )
+        cursor.execute(sql, (new_status_id,))
         self.connection.commit()
         cursor.close()
-        if s := self.get_lemma_status(lemma_id):
+        if s := self.get_lemma_status(lemma_ids[0]):
             return s.id == new_status_id
         else:
             return False

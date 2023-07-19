@@ -559,7 +559,10 @@ class TestExpensiveDbMethods:
                 detailed_tag="NNP",
             )
         )
-        assert db.get_lemma_contexts(lemma_id)[0].id == lemma_context_id
+        assert (
+            db.get_lemma_contexts(lemma_id, page=1, page_size=1)[0].id
+            == lemma_context_id
+        )
 
     def test_delete_lemma_invalid_id(self, db: LexDbIntegrator):
         assert db.delete_lemma(LemmaId(-1)) is False
@@ -632,7 +635,10 @@ class TestExpensiveDbMethods:
         )
         assert db.delete_lemma(lemma_id_delete) is True
         assert len(db.get_lemma_sources(lemma_id_delete)) == 0
-        assert len(db.get_lemma_contexts(lemma_id_delete)) == 0
+        assert (
+            len(db.get_lemma_contexts(lemma_id_delete, page=1, page_size=10))
+            == 0
+        )
         assert (cr := db.get_context(context_id_remain)) is not None
         assert str(lemma_id_delete) not in cr.context_value
         assert str(lemma_id_remain) in cr.context_value

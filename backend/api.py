@@ -30,6 +30,7 @@ from backend.dbtypes import (
     SourceId,
     SourceKindId,
     SourceKindVal,
+    Status,
     StatusId,
     StatusVal,
     UposTag,
@@ -91,11 +92,31 @@ async def get_status_id(status_val: StatusVal) -> StatusId:
     return db.get_status_id(status_val)
 
 
-@app.get("/pending")
+@app.get("/lemma_status_by_id/{status_id}")
+async def get_status_by_id(status_id: StatusId) -> Union[Status, None]:
+    return db.get_status_by_id(status_id)
+
+
+@app.get("/status_lemmata")
 async def get_pending_lemma_rows(
-    page: Union[int, None], page_size: Union[int, None] = None
+    status_val: StatusVal,
+    page: Union[int, None],
+    page_size: Union[int, None] = None,
+) -> list[Lemma]:
+    return db.get_status_lemma_rows(
+        status_val=status_val, page=page, page_size=page_size
+    )
+
+
+@app.get("/status_lemmata_table")
+async def get_status_lemma_rows_table(
+    status_val: StatusVal,
+    page: Union[int, None],
+    page_size: Union[int, None] = None,
 ) -> str:
-    return db.get_pending_lemma_rows(page=page, page_size=page_size)
+    return db.get_status_lemma_rows_table(
+        status_val=status_val, page=page, page_size=page_size
+    )
 
 
 @app.get("/contexts")
@@ -104,8 +125,10 @@ async def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
 
 
 @app.get("/lemma_contexts/{lemma_id}")
-async def get_lemma_contexts(lemma_id: LemmaId) -> list[Context]:
-    return db.get_lemma_contexts(lemma_id)
+async def get_lemma_contexts(
+    lemma_id: LemmaId, page: int, page_size: int
+) -> list[Context]:
+    return db.get_lemma_contexts(lemma_id, page, page_size)
 
 
 @app.post("/lemma")
@@ -187,8 +210,12 @@ class ApiRequestor:
         assert r.status_code == 200
         return StatusId(r.json())
 
-    def get_pending_lemma_rows(
-        self, page: Union[int, None] = None, page_size: Union[int, None] = None
+    def get_status_lemmata(
+        self,
+        status_val: StatusVal,
+        page: Union[int, None] = None,
+        page_size: Union[int, None] = None,
+        table: bool = False,
     ) -> str:
         query_params = {}
         # Add page and page_size query params if provided
@@ -196,7 +223,11 @@ class ApiRequestor:
             query_params["page"] = page
         if page_size:
             query_params["page_size"] = page_size
-        r = requests.get(f"{self.api_url}/pending", params=query_params)
+        query_params["status_val"] = status_val.value
+        r = requests.get(
+            f"{self.api_url}/status_lemmata{'_table' if table else ''}",
+            params=query_params,
+        )
         assert r.status_code == 200
         return r.json()
 

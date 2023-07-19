@@ -236,8 +236,9 @@ class LexDbIntegrator:
         cursor.execute(sql, (status_id,))
 
         status = (
-            parse_obj_as(Status, {"id": res[0], "status": res[1]})
-            if (res := cursor.fetchone())
+            Status(id=res[0], status=res[1])
+            # parse_obj_as(Status, {"id": res[0], "status": res[1]})
+            if (res := (cursor.fetchall() or [[]])[0])
             else None
         )
 
@@ -288,10 +289,36 @@ class LexDbIntegrator:
         cursor.close()
         return lemma
 
-    def get_pending_lemma_rows(
-        self, page: int = 1, page_size: Union[int, None] = None
+    def get_status_lemma_rows(
+        self,
+        status_val: StatusVal,
+        page: int = 1,
+        page_size: int = 100,
+    ) -> list[Lemma]:
+        pending_id = self.get_status_id(status_val)
+        cursor = self.connection.cursor()
+
+        if page and page_size:
+            limit = page_size
+            offset = (page - 1) * page_size
+            sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
+            cursor.execute(sql, (pending_id, limit, offset))
+        else:
+            sql = "SELECT * FROM lemma WHERE status_id = %s"
+            cursor.execute(sql, (pending_id,))
+
+        return [
+            Lemma(id=row[0], lemma=row[1], created=row[2], status_id=row[3])
+            for row in cursor.fetchall()
+        ]
+
+    def get_status_lemma_rows_table(
+        self,
+        status_val: StatusVal,
+        page: int = 1,
+        page_size: int = 100,
     ) -> str:
-        pending_id = self.get_status_id(StatusVal.PENDING)
+        pending_id = self.get_status_id(status_val)
         cursor = self.connection.cursor()
 
         if page and page_size:
@@ -578,13 +605,28 @@ class LexDbIntegrator:
         cursor.close()
         return lemma_context
 
-    def get_lemma_contexts(self, lemma_id: LemmaId) -> list[Context]:
+    def get_lemma_contexts(
+        self, lemma_id: LemmaId, page: int, page_size: int
+    ) -> list[Context]:
         """
         Returns all contexts a lemma appears in.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_context WHERE lemma_id = %s"
-        cursor.execute(sql, (lemma_id,))
+        limit = page_size
+        offset = (page - 1) * page_size
+
+        sql = (
+            "SELECT * FROM lemma_context WHERE lemma_id = %s LIMIT %s"
+            " OFFSET %s"
+        )
+        cursor.execute(
+            sql,
+            (
+                lemma_id,
+                limit,
+                offset,
+            ),
+        )
 
         context_ids = {
             parse_obj_as(

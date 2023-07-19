@@ -112,7 +112,7 @@ def list(
     List the top {head} pending lemmata.
     """
     vm = VocabManager(api_env)
-    vm.list_pending_lemma_rows(page_size=head)
+    vm.print_pending_lemma_rows(page_size=head)
 
 
 def set_api_env():

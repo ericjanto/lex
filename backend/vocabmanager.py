@@ -42,10 +42,17 @@ class VocabManager:
                     f.write(f"{lemma}\n")
         return self.api.delete_lemmata(lemma_ids)
 
-    def list_pending_lemma_rows(
+    def print_pending_lemma_rows(
         self, page: int = 1, page_size: Union[int, None] = None
     ) -> None:
-        print(self.api.get_pending_lemma_rows(page=page, page_size=page_size))
+        print(
+            self.api.get_status_lemmata(
+                status_val=StatusVal.PENDING,
+                page=page,
+                page_size=page_size,
+                table=True,
+            )
+        )
 
     def accept_lemma(self, lemma: str):
         pending_status_id = self.api.get_lemma_status(StatusVal.ACCEPTED)

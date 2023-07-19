@@ -5,7 +5,6 @@ import PaginatedLemmata from "@/components/PaginatedLemmata";
 type StatusVal = "pending" | "accepted";
 
 export default function Page({ params }: { params: { statusVal: StatusVal } }) {
-  // Check type of params.statusVal on runtime
   if (params.statusVal !== "pending" && params.statusVal !== "accepted") {
     return <div>Invalid status value</div>;
   }

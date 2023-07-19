@@ -15,5 +15,5 @@ export default function Status({ statusId }: { statusId: number }) {
   );
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
-  return <div>Status: {data!.status}</div>;
+  return <span>{data!.status}</span>;
 }

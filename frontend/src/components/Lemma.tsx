@@ -19,13 +19,28 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
   );
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
+
+  const borderStyle = {border: '1px solid black', paddingRight: '5px'}
+
   return (
-    <div>
-      <h1>{data!.lemma}</h1>
-      <div>
-        First encountered: {data!.created.substring(0, "yyyy-mm-dd".length)}
-      </div>
-      <Status statusId={data!.status_id} />
-    </div>
+    <>
+      <table style={{borderCollapse: 'collapse'}}>
+        <thead>
+          <tr>
+            <th colSpan={2} style={borderStyle}>{data!.lemma}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={borderStyle}>Status</td>
+            <td style={borderStyle}><Status statusId={data!.status_id} /></td>
+          </tr>
+          <tr>
+            <td style={borderStyle}>First encountered</td>
+            <td style={borderStyle}>{data!.created.substring(0, "yyyy-mm-dd".length)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </>
   );
 }

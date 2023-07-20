@@ -315,8 +315,8 @@ class ApiRequestor:
         assert (lsid := LemmaSourceId(r.json())) != -1
         return lsid
 
-    def delete_lemmata(self, lemma_ids: list[LemmaId]) -> bool:
-        r = requests.delete(f"{self.api_url}/lemma", json=lemma_ids)
+    def delete_lemmata(self, lemma_ids: set[LemmaId]) -> bool:
+        r = requests.delete(f"{self.api_url}/lemma", json=list(lemma_ids))
         assert r.status_code == 200
         return r.json()
 

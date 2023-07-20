@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Page() {
   return (
-    <ul style={{listStyleType: 'none', paddingLeft: '0'}}>
+    <ul style={{listStyleType: 'none', paddingLeft: '0', marginTop: '0'}}>
       <li>
         <Link href="/contexts">/contexts</Link>
       </li>

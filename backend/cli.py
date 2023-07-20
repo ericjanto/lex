@@ -46,11 +46,11 @@ def rm(
     Remove a lemma and all associated data from the database.
     """
     vm = VocabManager(api_env)
-    if vm.transfer_lemmata_to_irrelevant_vocab([lemma]):
+    if vm.transfer_lemma_to_irrelevant_vocab(lemma):
         rprint(f"[green]Successfully removed '{lemma}'.")
     else:
         rprint(
-            f"[red]'{lemma}' could not been removed, make sure it is in the"
+            f"[red]'{lemma}' could not be removed, make sure it is in the"
             " database"
         )
 
@@ -62,7 +62,7 @@ def rmm(
     """
     Remove all lemmata passed specified by their ID.
     """
-    lids = list({LemmaId(lid) for lid in lemma_ids})
+    lids = {LemmaId(lid) for lid in lemma_ids}
     vm = VocabManager(api_env)
     if vm.transfer_lemmata_to_irrelevant_vocab(lids):
         rprint("[green]Successfully removed all lemmata.")

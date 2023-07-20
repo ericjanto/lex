@@ -21,7 +21,7 @@ class VocabManager:
 
     def transfer_lemma_to_irrelevant_vocab(self, lemma: str) -> bool:
         lemma_id = self.api.get_lemma_id(lemma)
-        if result := self.api.delete_lemmata([lemma_id]):
+        if result := self.api.delete_lemmata({lemma_id}):
             irrelevant_vocab = TextParser._load_vocab(
                 Const.PATH_IRRELEVANT_VOCAB
             )
@@ -31,7 +31,7 @@ class VocabManager:
         return result
 
     def transfer_lemmata_to_irrelevant_vocab(
-        self, lemma_ids: list[LemmaId]
+        self, lemma_ids: set[LemmaId]
     ) -> bool:
         irrelevant_vocab = TextParser._load_vocab(Const.PATH_IRRELEVANT_VOCAB)
         with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f:
@@ -57,7 +57,7 @@ class VocabManager:
     def commit_lemma(self, lemma: str):
         committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
         lemma_id = self.api.get_lemma_id(lemma)
-        return self.api.update_multiple_status([lemma_id], committed_status_id)
+        return self.api.update_multiple_status({lemma_id}, committed_status_id)
 
     def commit_lemmata(self, lemma_ids: set[LemmaId]):
         committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
@@ -66,7 +66,7 @@ class VocabManager:
     def push_lemma(self, lemma: str):
         pushed_status_id = self.api.get_lemma_status(StatusVal.PUSHED)
         lemma_id = self.api.get_lemma_id(lemma)
-        return self.api.update_multiple_status([lemma_id], pushed_status_id)
+        return self.api.update_multiple_status({lemma_id}, pushed_status_id)
 
     def push_lemmata(self, lemma_ids: set[LemmaId]):
         pushed_status_id = self.api.get_lemma_status(StatusVal.PUSHED)

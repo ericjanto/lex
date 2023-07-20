@@ -77,25 +77,25 @@ def rmm(
 @cli.command("commit")
 def commit(lemma: str):
     """
-    Change the status of a lemma from 'pending' to 'accepted'.
+    Change the status of a lemma from 'staged' to 'committed'.
     """
     vm = VocabManager(api_env)
-    if vm.accept_lemma(lemma):
-        rprint(f"[green]Successfully accepted '{lemma}'.")
+    if vm.commit_lemma(lemma):
+        rprint(f"[green]Successfully committed '{lemma}'.")
     else:
         rprint(
-            "[red]Unsuccessful. Make sure the lemma exists in the database."
+            "[red]Commit unsuccessful. Make sure the lemma exists in the"
+            " database."
         )
 
 
 @cli.command("commitm")
 def commitm(lemma_ids: list[int]):
     """
-    Change the status of all lemma referenced by the passed IDs from 'pending'
-    to 'accepted'.
+    Commits all lemmata specified by their ID.
     """
     vm = VocabManager(api_env)
-    if vm.accept_lemmata([LemmaId(lid) for lid in lemma_ids]):
+    if vm.commit_lemmata([LemmaId(lid) for lid in lemma_ids]):
         rprint("[green]Successfully updated all lemma status.")
     else:
         rprint(
@@ -109,10 +109,10 @@ def list(
     head: int = 25,
 ):
     """
-    List the top {head} pending lemmata.
+    List the top {head} staged lemmata.
     """
     vm = VocabManager(api_env)
-    vm.print_pending_lemma_rows(page_size=head)
+    vm.print_staged_lemma_rows(page_size=head)
 
 
 def set_api_env():

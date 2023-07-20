@@ -42,23 +42,23 @@ class VocabManager:
                     f.write(f"{lemma}\n")
         return self.api.delete_lemmata(lemma_ids)
 
-    def print_pending_lemma_rows(
+    def print_staged_lemma_rows(
         self, page: int = 1, page_size: Union[int, None] = None
     ) -> None:
         print(
             self.api.get_status_lemmata(
-                status_val=StatusVal.PENDING,
+                status_val=StatusVal.STAGED,
                 page=page,
                 page_size=page_size,
                 table=True,
             )
         )
 
-    def accept_lemma(self, lemma: str):
-        pending_status_id = self.api.get_lemma_status(StatusVal.ACCEPTED)
+    def commit_lemma(self, lemma: str):
+        committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
         lemma_id = self.api.get_lemma_id(lemma)
-        return self.api.update_multiple_status([lemma_id], pending_status_id)
+        return self.api.update_multiple_status([lemma_id], committed_status_id)
 
-    def accept_lemmata(self, lemma_ids: list[LemmaId]):
-        pending_status_id = self.api.get_lemma_status(StatusVal.ACCEPTED)
-        return self.api.update_multiple_status(lemma_ids, pending_status_id)
+    def commit_lemmata(self, lemma_ids: list[LemmaId]):
+        committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
+        return self.api.update_multiple_status(lemma_ids, committed_status_id)

@@ -76,7 +76,7 @@ class TestExpensiveDbMethods:
 
         db.add_source_kind(SourceKindVal.BOOK)
         # add new lemma_status
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         # add new lemma
         lemma_id = db.add_lemma(Lemma(lemma="hobbit", status_id=status_id))
         # add new source
@@ -184,23 +184,23 @@ class TestExpensiveDbMethods:
         assert db.get_source(source_id) == source
 
     def test_add_status_same_status_twice(self, db: LexDbIntegrator):
-        status_id_1 = db.add_status(StatusVal.ACCEPTED)
-        status_id_2 = db.add_status(StatusVal.ACCEPTED)
+        status_id_1 = db.add_status(StatusVal.COMMITTED)
+        status_id_2 = db.add_status(StatusVal.COMMITTED)
         assert status_id_1 == status_id_2
 
     def test_add_status_valid_status(self, db: LexDbIntegrator):
         db.truncate_all_tables()
-        assert db.add_status(StatusVal.PENDING) == 1
+        assert db.add_status(StatusVal.STAGED) == 1
 
     def test_get_status_id_valid_status(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
-        assert db.get_status_id(StatusVal.PENDING) == status_id
+        status_id = db.add_status(StatusVal.STAGED)
+        assert db.get_status_id(StatusVal.STAGED) == status_id
 
     def test_get_status_by_id_invalid_status_id(self, db: LexDbIntegrator):
         assert db.get_status_by_id(StatusId(-1)) is None
 
     def test_get_status_by_id_valid_status_id(self, db: LexDbIntegrator):
-        status_val = StatusVal.PENDING
+        status_val = StatusVal.STAGED
         status_id = db.add_status(status_val)
         assert (s := db.get_status_by_id(status_id)) is not None
         assert s.status == status_val
@@ -209,7 +209,7 @@ class TestExpensiveDbMethods:
         assert db.get_lemma_status(LemmaId(-1)) is None
 
     def test_get_status_by_lemma_valid_lemma_id(self, db: LexDbIntegrator):
-        status_val = StatusVal.PENDING
+        status_val = StatusVal.STAGED
         status_id = db.add_status(status_val)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         assert (s := db.get_lemma_status(lemma_id)) is not None
@@ -222,13 +222,13 @@ class TestExpensiveDbMethods:
         )
 
     def test_add_lemma_valid_status_id(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         assert (
             db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id)) != -1
         )
 
     def test_add_lemma_same_lemma_twice(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id_1 = db.add_lemma(
             Lemma(lemma="test-lemma", status_id=status_id)
         )
@@ -241,7 +241,7 @@ class TestExpensiveDbMethods:
         assert db.get_lemma_id("invalid_lemma") == -1
 
     def test_get_lemma_id_valid_lemma(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         db.add_lemma(Lemma(lemma="test_lemma", status_id=status_id))
         assert db.get_lemma_id("test_lemma") != -1
 
@@ -249,7 +249,7 @@ class TestExpensiveDbMethods:
         assert db.get_lemma(LemmaId(-1)) is None
 
     def test_get_lemma_valid_lemma_id(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         assert db.get_lemma(lemma_id) is not None
 
@@ -264,7 +264,7 @@ class TestExpensiveDbMethods:
         )
 
     def test_add_lemma_source_valid_ids(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -279,7 +279,7 @@ class TestExpensiveDbMethods:
 
     def test_add_lemma_source_multiple_return_ids(self, db: LexDbIntegrator):
         db.truncate_all_tables()
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -304,7 +304,7 @@ class TestExpensiveDbMethods:
         )
 
     def test_get_lemma_sources_ids_valid_lemma_id(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id_1 = db.add_source(
@@ -328,7 +328,7 @@ class TestExpensiveDbMethods:
         assert db.get_lemma_sources(LemmaId(-1)) == []
 
     def test_get_lemma_source_ids_valid_ids(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -415,7 +415,7 @@ class TestExpensiveDbMethods:
 
     def test_add_lemma_context_valid_ids(self, db: LexDbIntegrator):
         db.truncate_all_tables()
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -452,7 +452,7 @@ class TestExpensiveDbMethods:
         )
 
     def test_get_lemma_context_relations_valid_ids(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -472,12 +472,12 @@ class TestExpensiveDbMethods:
         assert len(db.get_lemma_context_relations(lcr)) == 2
 
     def test_update_lemma_status_invalid_id(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         assert db.update_lemmata_status([LemmaId(-1)], status_id) is False
 
     def test_update_lemma_status_valid_ids(self, db: LexDbIntegrator):
-        old_status_id = db.add_status(StatusVal.PENDING)
-        new_status_id = db.add_status(StatusVal.ACCEPTED)
+        old_status_id = db.add_status(StatusVal.STAGED)
+        new_status_id = db.add_status(StatusVal.COMMITTED)
         lemma_id = db.add_lemma(
             Lemma(lemma="test_lemma", status_id=old_status_id)
         )
@@ -496,7 +496,7 @@ class TestExpensiveDbMethods:
     def test_change_lemma_context_upos_tag_valid_ids(
         self, db: LexDbIntegrator
     ):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -521,7 +521,7 @@ class TestExpensiveDbMethods:
         assert lcr.upos_tag == UposTag.VERB
 
     def test_get_lemma_context(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -542,7 +542,7 @@ class TestExpensiveDbMethods:
         assert db.get_lemma_context_relation(LemmaContextId(-1)) is None
 
     def test_get_lemma_contexts(self, db: LexDbIntegrator):
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
@@ -567,7 +567,7 @@ class TestExpensiveDbMethods:
     def test_delete_lemma_invalid_id(self, db: LexDbIntegrator):
         assert db.delete_lemma(LemmaId(-1)) is False
         # set up the test scenario described above
-        status_id = db.add_status(StatusVal.PENDING)
+        status_id = db.add_status(StatusVal.STAGED)
         lemma_id_delete = db.add_lemma(
             Lemma(lemma="test-lemma", status_id=status_id)
         )

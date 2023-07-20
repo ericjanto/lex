@@ -62,8 +62,9 @@ class StatusVal(Enum):
     Represents a lemma status.
     """
 
-    PENDING = "pending"
-    ACCEPTED = "accepted"
+    STAGED = "staged"
+    COMMITTED = "committed"
+    PUSHED = "pushed"
 
 
 class ConfiguredBaseModel(BaseModel):

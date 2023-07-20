@@ -1,15 +1,24 @@
 import Link, { LinkProps } from "next/link";
 
-function appendId(
-  clipboardText: string,
-  id: number | string,
-): string {
-  const delimiter = '§'
+function appendId(clipboardText: string, id: number | string): string {
+  const delimiter = "§";
 
   if (clipboardText.endsWith(delimiter)) {
     return clipboardText.slice(0, -delimiter.length) + " " + id + delimiter;
   }
   return id + " " + delimiter;
+}
+
+export function appendQueryParams(
+  href: string,
+  params: { [key: string]: string | number } = {}
+): string {
+  const url = new URL(href);
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value.toString());
+  }
+  return url.toString();
 }
 
 export function AppendCopyLink({
@@ -52,7 +61,6 @@ export function deserialiseContextValue(contextValue: string): JSX.Element[] {
       }
       return (
         <>
-        
           <AppendCopyLink href={`/lemma/${id}`} toAppend={id}>
             {word}
           </AppendCopyLink>

@@ -107,6 +107,8 @@ class LexDbIntegrator:
         self.connection.commit()
         cursor.execute("SELECT LAST_INSERT_ID()")
         skid = SourceKindId(cursor.fetchall()[0][0])
+        if skid == 0:
+            skid = self.get_source_kind_id(source_kind)
         cursor.close()
         return skid
 
@@ -146,6 +148,7 @@ class LexDbIntegrator:
         Adds a new source to the database if it doesn't exist already.
         Returns -1 if aborted because of invalid source kind id.
         """
+        print("here")
         if not self.get_source_kind(source.source_kind_id):
             return SourceId(-1)
 
@@ -203,10 +206,7 @@ class LexDbIntegrator:
         sql = "INSERT IGNORE INTO lemma_status (status) VALUES (%s)"
         cursor.execute(sql, (status_val.value,))
         self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        sid = StatusId(cursor.fetchall()[0][0])
-        cursor.close()
-        return sid
+        return self.get_status_id(status_val)
 
     def get_status_id(self, status_val: StatusVal) -> StatusId:
         """
@@ -261,6 +261,8 @@ class LexDbIntegrator:
         self.connection.commit()
         cursor.execute("SELECT LAST_INSERT_ID()")
         lemma_id = LemmaId(cursor.fetchall()[0][0])
+        if lemma_id == 0:
+            lemma_id = self.get_lemma_id(lemma.lemma)
         cursor.close()
         return lemma_id
 
@@ -467,6 +469,10 @@ class LexDbIntegrator:
         self.connection.commit()
         cursor.execute("SELECT LAST_INSERT_ID()")
         ctid = ContextId(cursor.fetchall()[0][0])
+        if ctid == 0:
+            ctid = self.get_context_id(
+                context.context_value, context.source_id
+            )
         cursor.close()
         return ctid
 

@@ -32,6 +32,14 @@ CREATE TABLE
         ) NOT NULL UNIQUE
     );
 
+INSERT INTO
+    source_kind (status)
+VALUES
+    ('book'),
+    ('article'),
+    ('conversation');
+    ('film');
+
 CREATE TABLE
     IF NOT EXISTS source (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,

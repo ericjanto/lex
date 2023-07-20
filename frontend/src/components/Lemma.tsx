@@ -56,6 +56,6 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
       </>
     );
   } else {
-    return <div>Lemma not found</div>;
+    return <div>Lemma with id {lemmaId} not found</div>;
   }
 }

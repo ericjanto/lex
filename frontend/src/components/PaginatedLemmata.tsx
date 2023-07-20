@@ -2,7 +2,7 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import { Lemma } from "@/components/Lemma";
 import { useState } from "react";
-import Link from "next/link";
+import { AppendCopyLink } from "@/lib/utils";
 
 export const fetcher: Fetcher<Lemma[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
@@ -17,7 +17,14 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
         return (
           <tr key={lemma.id}>
             <td>{lemma.id}</td>
-            <td><Link href={`/lemma/${lemma.id}`}>{lemma.lemma}</Link></td>
+            <td>
+              <AppendCopyLink
+                href={`/lemma/${lemma.id}`}
+                toAppend={lemma.id}
+              >
+                {lemma.lemma}
+              </AppendCopyLink>
+            </td>
             <td>{lemma.created}</td>
           </tr>
         );
@@ -39,9 +46,9 @@ export default function PaginatedLemmata({
       <table>
         <thead>
           <tr>
-            <th>id</th>
-            <th>lemma</th>
-            <th>created</th>
+            <th style={{textAlign: 'left'}}>id</th>
+            <th style={{textAlign: 'left'}}>lemma</th>
+            <th style={{textAlign: 'left'}}>created</th>
           </tr>
         </thead>
         <tbody>

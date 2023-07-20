@@ -10,9 +10,7 @@ type Context = {
   source_id: number;
 };
 
-type Results = Context[];
-
-const fetcher: Fetcher<Results> = (url: RequestInfo | URL) =>
+const fetcher: Fetcher<Context[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
 
 function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
@@ -22,11 +20,11 @@ function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
   if (isLoading) return <div>Loading...</div>;
   return (
     <>
-      {data!.map((item: Context) => {
+      {data!.map((context: Context) => {
         return (
-          <span key={item.id}>
+          <span key={context.id}>
             <span style={{ color: "#919191" }}>{" § "}</span>
-            <span>{deserialiseContextValue(item.context_value)}</span>
+            <span>{deserialiseContextValue(context.context_value)}</span>
           </span>
         );
       })}

@@ -12,7 +12,7 @@ function functionalColour(status: StatusVal) {
     case "staged":
       return "red";
     case "committed":
-      return "yellow";
+      return "orange";
     case "pushed":
       return "green";
   }

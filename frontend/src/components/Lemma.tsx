@@ -36,7 +36,7 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
         </thead>
         <tbody>
           <tr>
-            <td style={borderStyle}>First encountered</td>
+            <td style={borderStyle}>Created</td>
             <td style={borderStyle}>
               {data!.created.substring(0, "yyyy-mm-dd".length)}
             </td>

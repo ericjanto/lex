@@ -62,10 +62,9 @@ def rmm(
     """
     Remove all lemmata passed specified by their ID.
     """
+    lids = list({LemmaId(lid) for lid in lemma_ids})
     vm = VocabManager(api_env)
-    if vm.transfer_lemmata_to_irrelevant_vocab(
-        [LemmaId(lid) for lid in lemma_ids]
-    ):
+    if vm.transfer_lemmata_to_irrelevant_vocab(lids):
         rprint("[green]Successfully removed all lemmata.")
     else:
         rprint(
@@ -85,7 +84,7 @@ def commit(lemma: str):
     else:
         rprint(
             "[red]Commit unsuccessful. Make sure the lemma exists in the"
-            " database."
+            " database, and that it indeed has the status 'staged'."
         )
 
 
@@ -94,13 +93,45 @@ def commitm(lemma_ids: list[int]):
     """
     Commits all lemmata specified by their ID.
     """
+    lids = {LemmaId(lid) for lid in lemma_ids}
     vm = VocabManager(api_env)
-    if vm.commit_lemmata([LemmaId(lid) for lid in lemma_ids]):
-        rprint("[green]Successfully updated all lemma status.")
+    if vm.commit_lemmata(lids):
+        rprint("[green]Successfully updated all lemma statuses.")
     else:
         rprint(
-            "[red]Not all lemma status could be updated, make sure they are"
-            " actually in the database."
+            "[red]Not all lemma statuses could be updated, make sure they are"
+            " actually in the database and have 'staged' status."
+        )
+
+
+@cli.command("push")
+def push(lemma: str):
+    """
+    Change the status of a lemma from 'staged' to 'committed'.
+    """
+    vm = VocabManager(api_env)
+    if vm.push_lemma(lemma):
+        rprint(f"[green]Successfully pushed '{lemma}'.")
+    else:
+        rprint(
+            "[red]Push unsuccessful. Make sure the lemma exists in the"
+            " database, and that it indeed has the status 'committed'."
+        )
+
+
+@cli.command("pushm")
+def pushm(lemma_ids: list[int]):
+    """
+    Push all lemmata specified by their ID.
+    """
+    lids = {LemmaId(lid) for lid in lemma_ids}
+    vm = VocabManager(api_env)
+    if vm.push_lemmata(lids):
+        rprint("[green]Successfully pushed all lemmata.")
+    else:
+        rprint(
+            "[red]Not all lemma statuses could be pushed, make sure they are"
+            " actually in the database and have 'committed' status."
         )
 
 

@@ -236,9 +236,8 @@ class LexDbIntegrator:
         cursor.execute(sql, (status_id,))
 
         status = (
-            Status(id=res[0], status=res[1])
-            # parse_obj_as(Status, {"id": res[0], "status": res[1]})
-            if (res := (cursor.fetchall() or [[]])[0])
+            Status(id=res[0][0], status=res[0][1])
+            if (res := cursor.fetchall())
             else None
         )
 
@@ -723,6 +722,9 @@ class LexDbIntegrator:
         for lid in lemma_ids:
             if not self.get_lemma(lid):
                 return False
+            if s := self.get_lemma_status(lid):
+                if s.id == new_status_id:
+                    return False
 
         cursor = self.connection.cursor()
         sql = (
@@ -732,7 +734,7 @@ class LexDbIntegrator:
         cursor.execute(sql, (new_status_id,))
         self.connection.commit()
         cursor.close()
-        if s := self.get_lemma_status(lemma_ids[0]):
+        if s := self.get_lemma_status(lemma_ids.pop()):
             return s.id == new_status_id
         else:
             return False

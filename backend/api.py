@@ -321,11 +321,11 @@ class ApiRequestor:
         return r.json()
 
     def update_multiple_status(
-        self, lemma_ids: list[LemmaId], new_status_id: StatusId
+        self, lemma_ids: set[LemmaId], new_status_id: StatusId
     ) -> bool:
         r = requests.patch(
             f"{self.api_url}/status?new_status_id={new_status_id}",
-            json=lemma_ids,
+            json=list(lemma_ids),
         )
         assert r.status_code == 200
         return r.json()

@@ -2,10 +2,14 @@
 
 import PaginatedLemmata from "@/components/PaginatedLemmata";
 
-type StatusVal = "pending" | "accepted";
+export type StatusVal = "staged" | "committed" | "pushed";
 
 export default function Page({ params }: { params: { statusVal: StatusVal } }) {
-  if (params.statusVal !== "pending" && params.statusVal !== "accepted") {
+  if (
+    params.statusVal !== "staged" &&
+    params.statusVal !== "committed" &&
+    params.statusVal !== "pushed"
+  ) {
     return <div>Invalid status value</div>;
   }
   return (

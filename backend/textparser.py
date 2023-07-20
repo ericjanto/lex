@@ -115,7 +115,7 @@ class TextParser:
         source_id = self.api.post_source(
             title=source_metadata.title, source_kind_id=source_kind_id
         )
-        status_id_pending = self.api.post_status(StatusVal.PENDING)
+        status_id_staged = self.api.post_status(StatusVal.STAGED)
 
         content_line_num = buf_count_newlines(content_path)
 
@@ -155,7 +155,7 @@ class TextParser:
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),
-                        self.api.post_lemma(lemma, status_id_pending),
+                        self.api.post_lemma(lemma, status_id_staged),
                         t.tag_,
                         UposTag(t.pos_),
                     )

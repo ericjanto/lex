@@ -295,17 +295,17 @@ class LexDbIntegrator:
         page: int = 1,
         page_size: int = 100,
     ) -> list[Lemma]:
-        pending_id = self.get_status_id(status_val)
+        status_id = self.get_status_id(status_val)
         cursor = self.connection.cursor()
 
         if page and page_size:
             limit = page_size
             offset = (page - 1) * page_size
             sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
-            cursor.execute(sql, (pending_id, limit, offset))
+            cursor.execute(sql, (status_id, limit, offset))
         else:
             sql = "SELECT * FROM lemma WHERE status_id = %s"
-            cursor.execute(sql, (pending_id,))
+            cursor.execute(sql, (status_id,))
 
         return [
             Lemma(id=row[0], lemma=row[1], created=row[2], status_id=row[3])
@@ -318,17 +318,17 @@ class LexDbIntegrator:
         page: int = 1,
         page_size: int = 100,
     ) -> str:
-        pending_id = self.get_status_id(status_val)
+        status_id = self.get_status_id(status_val)
         cursor = self.connection.cursor()
 
         if page and page_size:
             limit = page_size
             offset = (page - 1) * page_size
             sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
-            cursor.execute(sql, (pending_id, limit, offset))
+            cursor.execute(sql, (status_id, limit, offset))
         else:
             sql = "SELECT * FROM lemma WHERE status_id = %s"
-            cursor.execute(sql, (pending_id,))
+            cursor.execute(sql, (status_id,))
 
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
@@ -874,4 +874,3 @@ class LexDbIntegrator:
 
 if __name__ == "__main__":
     db = LexDbIntegrator(DbEnvironment.DEV)
-    # print(db.get_pending_lemma_rows(10))

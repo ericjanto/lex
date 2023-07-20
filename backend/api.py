@@ -98,7 +98,7 @@ async def get_status_by_id(status_id: StatusId) -> Union[Status, None]:
 
 
 @app.get("/status_lemmata")
-async def get_pending_lemma_rows(
+async def get_status_lemma_rows(
     status_val: StatusVal,
     page: Union[int, None],
     page_size: Union[int, None] = None,

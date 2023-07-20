@@ -1,10 +1,15 @@
-DROP TABLE IF EXISTS t;
-
 CREATE TABLE
     IF NOT EXISTS lemma_status (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        status ENUM ('pending', 'accepted') NOT NULL UNIQUE
+        status ENUM ('staged', 'committed', 'pushed') NOT NULL UNIQUE
     );
+
+INSERT INTO
+    lemma_status (status)
+VALUES
+    ('staged'),
+    ('committed'),
+    ('pushed');
 
 CREATE TABLE
     IF NOT EXISTS lemma (

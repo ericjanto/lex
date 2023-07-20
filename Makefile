@@ -16,8 +16,6 @@ dbdev:
 dbprod:
 	pscale shell lex main
 dbdevadd:
-# copy the contents of the local file at backend/assets/reference-vocabulary/vocabulary.base.txt into a new file called t.txt
-# then run the following command to add the words to the database
 	cp $(BASE_VOCAB_PATH) t.txt
 	rm $(BASE_VOCAB_PATH)
 	touch $(BASE_VOCAB_PATH)

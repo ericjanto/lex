@@ -1,6 +1,7 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { StatusVal } from "@/app/status/[statusVal]/page";
+import { API_BASE_URL } from "@/lib/const";
 
 type Status = {
   id: number;
@@ -23,7 +24,7 @@ const fetcher: Fetcher<Status> = (url: RequestInfo | URL) =>
 
 export default function Status({ statusId }: { statusId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `http://127.0.0.1:8000/lemma_status_by_id/${statusId}`,
+    `${API_BASE_URL}/lemma_status_by_id/${statusId}`,
     fetcher
   );
   if (isLoading) return <div>Loading...</div>;

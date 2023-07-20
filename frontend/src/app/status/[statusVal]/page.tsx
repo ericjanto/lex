@@ -1,6 +1,7 @@
 "use client";
 
 import PaginatedLemmata from "@/components/PaginatedLemmata";
+import { API_BASE_URL } from "@/lib/const";
 
 export type StatusVal = "staged" | "committed" | "pushed";
 
@@ -14,7 +15,7 @@ export default function Page({ params }: { params: { statusVal: StatusVal } }) {
   }
   return (
     <PaginatedLemmata
-      fetchQuery={`http://127.0.0.1:8000/status_lemmata?status_val=${params.statusVal}`}
+      fetchQuery={`${API_BASE_URL}/status_lemmata?status_val=${params.statusVal}`}
       page_size={100}
     />
   );

@@ -1,7 +1,7 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { deserialiseContextValue } from "@/lib/utils";
-import { useState } from "react";
+import Paginator from "@/components/Paginator";
 
 type Context = {
   id: number;
@@ -39,19 +39,11 @@ export default function PaginatedContexts({
   fetchQuery: string;
   page_size: number;
 }) {
-  const [page, setPage] = useState(1);
   return (
-    <>
-      {[...Array(page).keys()].map((i) => {
-        return (
-          <ContextSetDisplayer
-            key={i}
-            fetchQuery={`${fetchQuery}?page=${i + 1}&page_size=${page_size}`}
-          />
-        );
-      })}
-      <br />
-      <button onClick={() => setPage(page + 1)}>Gimme more</button>
-    </>
+    <Paginator
+      pageComponent={ContextSetDisplayer}
+      fetchQuery={fetchQuery}
+      page_size={page_size}
+    />
   );
 }

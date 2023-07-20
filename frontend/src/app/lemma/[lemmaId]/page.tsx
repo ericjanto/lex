@@ -2,6 +2,7 @@
 
 import PaginatedContexts from "@/components/PaginatedContexts";
 import Lemma from "@/components/Lemma";
+import { API_BASE_URL } from "@/lib/const";
 
 export default function Page({ params }: { params: { lemmaId: number } }) {
   return (
@@ -9,7 +10,7 @@ export default function Page({ params }: { params: { lemmaId: number } }) {
       <Lemma lemmaId={params.lemmaId} />
       <br />
       <PaginatedContexts
-        fetchQuery={`http://127.0.0.1:8000/lemma_contexts/${params.lemmaId}`}
+        fetchQuery={`${API_BASE_URL}/lemma_contexts/${params.lemmaId}`}
         page_size={100}
       />
     </>

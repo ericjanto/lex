@@ -1,6 +1,7 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
 import Status from "@/components/Status";
+import { API_BASE_URL } from "@/lib/const";
 
 export type Lemma = {
   id: number;
@@ -14,7 +15,7 @@ const lemmaFetcher: Fetcher<Lemma> = (url: RequestInfo | URL) =>
 
 export default function Lemma({ lemmaId }: { lemmaId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `http://127.0.0.1:8000/lemma/${lemmaId}`,
+    `${API_BASE_URL}/lemma/${lemmaId}`,
     lemmaFetcher
   );
   if (isLoading) {
@@ -24,31 +25,37 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
 
   const borderStyle = { border: "1px solid black", paddingRight: "5px" };
 
-  return (
-    <>
-      <table style={{ borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th colSpan={2} style={borderStyle}>
-              {data!.lemma}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={borderStyle}>Created</td>
-            <td style={borderStyle}>
-              {data!.created.substring(0, "yyyy-mm-dd".length)}
-            </td>
-          </tr>
-          <tr>
-            <td style={borderStyle}>Status</td>
-            <td style={borderStyle}>
-              <Status statusId={data!.status_id} />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </>
-  );
+  if (data && Object.keys(data).length !== 0 && data.constructor === Object) {
+    return (
+      <>
+        {data && (
+          <table style={{ borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th colSpan={2} style={borderStyle}>
+                  {data!.lemma}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={borderStyle}>Created</td>
+                <td style={borderStyle}>
+                  {data!.created.substring(0, "yyyy-mm-dd".length)}
+                </td>
+              </tr>
+              <tr>
+                <td style={borderStyle}>Status</td>
+                <td style={borderStyle}>
+                  <Status statusId={data!.status_id} />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </>
+    );
+  } else {
+    return <div>Lemma not found</div>;
+  }
 }

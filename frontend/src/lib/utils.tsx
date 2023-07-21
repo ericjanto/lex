@@ -1,13 +1,4 @@
-import Link, { LinkProps } from "next/link";
-
-function appendId(clipboardText: string, id: number | string): string {
-  const delimiter = "§";
-
-  if (clipboardText.endsWith(delimiter)) {
-    return clipboardText.slice(0, -delimiter.length) + " " + id + delimiter;
-  }
-  return id + " " + delimiter;
-}
+import Link from "next/link";
 
 export function appendQueryParams(
   href: string,
@@ -19,33 +10,6 @@ export function appendQueryParams(
     url.searchParams.set(key, value.toString());
   }
   return url.toString();
-}
-
-export function AppendCopyLink({
-  children,
-  toAppend,
-  ...props
-}: {
-  children: any;
-  toAppend: number | string;
-} & LinkProps) {
-  return (
-    <Link
-      {...props}
-      onClick={(e) => {
-        if (e.altKey && e.shiftKey) {
-          // Read from clipboard and print to console
-          navigator.clipboard.readText().then((text) => {
-            const toCopy = appendId(text, toAppend);
-            navigator.clipboard.writeText(toCopy);
-          });
-          e.preventDefault();
-        }
-      }}
-    >
-      {children}
-    </Link>
-  );
 }
 
 export function deserialiseContextValue(contextValue: string): JSX.Element[] {
@@ -61,9 +25,9 @@ export function deserialiseContextValue(contextValue: string): JSX.Element[] {
       }
       return (
         <>
-          <AppendCopyLink href={`/lemma/${id}`} toAppend={id}>
+          <Link href={`/lemma/${id}`}>
             {word}
-          </AppendCopyLink>
+          </Link>
           {space}
         </>
       );

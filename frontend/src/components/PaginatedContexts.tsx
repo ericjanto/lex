@@ -22,7 +22,7 @@ function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
     <>
       {data!.map((context: Context) => {
         return (
-          <span key={context.id}>
+          <span key={context.id} id={String(context.id)}>
             <span style={{ color: "#919191" }}>{" § "}</span>
             <span>{deserialiseContextValue(context.context_value)}</span>
           </span>

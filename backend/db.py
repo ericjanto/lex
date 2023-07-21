@@ -4,6 +4,7 @@ db
 Programmatic interface for interacting with the lex database.
 """
 import os
+import re
 from typing import Any, Union
 
 import mysql.connector
@@ -864,7 +865,9 @@ class LexDbIntegrator:
                 (context_id,),
             )
             context_value = cursor.fetchall()[0][0]
-            context_value = context_value.replace(f"::{lemma_id}", "")
+            context_value = re.sub(
+                rf"(::{lemma_id})(\D)", r"\g<2>", context_value
+            )
             cursor.execute(
                 "UPDATE context SET context_value = %s WHERE id = %s",
                 (context_value, context_id),

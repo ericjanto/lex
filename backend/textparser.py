@@ -13,6 +13,10 @@ from typing import NamedTuple
 import en_core_web_trf
 import spacy
 from rich.progress import Progress
+from spacy.lang.en.stop_words import (
+    STOP_WORDS,  # TODO @ej localisation-relevant
+)
+from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
 
 from backend.api import ApiEnvironment, ApiRequestor
@@ -44,7 +48,7 @@ class TextParser:
         """
         self.api = ApiRequestor(api_env)
 
-        self.nlp = en_core_web_trf.load()
+        self.nlp = en_core_web_trf.load()  # TODO @ej localisation-relevant
         self._customise_tokenisation()
         self.nlp_parsing_pipes = self.nlp.select_pipes(
             enable=(
@@ -208,6 +212,7 @@ class TextParser:
             and lemma not in irrelevant_vocab
             and token.pos_ in Const.UPOS_RELEVANT
             and not token.is_stop
+            and not is_stop(lemma, STOP_WORDS)
             and not token.like_num
             and not token.is_space
             and not token.is_digit

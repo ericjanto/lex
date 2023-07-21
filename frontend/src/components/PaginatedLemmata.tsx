@@ -1,7 +1,7 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { Lemma } from "@/components/Lemma";
-import { AppendCopyLink } from "@/lib/utils";
+import Link from "next/link";
 import { useState } from "react";
 
 export const fetcher: Fetcher<Lemma[]> = (url: RequestInfo | URL) =>
@@ -25,9 +25,9 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
           <tr key={lemma.id}>
             <td>{lemma.id}</td>
             <td>
-              <AppendCopyLink href={`/lemma/${lemma.id}`} toAppend={lemma.id}>
+              <Link href={`/lemma/${lemma.id}`}>
                 {lemma.lemma}
-              </AppendCopyLink>
+              </Link>
             </td>
             <td>{lemma.created}</td>
           </tr>

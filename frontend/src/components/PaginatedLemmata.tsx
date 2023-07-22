@@ -2,7 +2,7 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import { Lemma } from "@/components/Lemma";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const fetcher: Fetcher<Lemma[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
@@ -25,9 +25,7 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
           <tr key={lemma.id}>
             <td>{lemma.id}</td>
             <td>
-              <Link href={`/lemma/${lemma.id}`}>
-                {lemma.lemma}
-              </Link>
+              <Link href={`/lemma/${lemma.id}`}>{lemma.lemma}</Link>
             </td>
             <td>{lemma.created}</td>
           </tr>
@@ -45,6 +43,18 @@ export default function PaginatedLemmata({
   page_size: number;
 }) {
   const [page, setPage] = useState(1);
+  const [allLoaded, setAllLoaded] = useState(false);
+
+  useEffect(() => {
+    const dataStore = document.getElementById("data-store");
+    const trs = dataStore ? dataStore.getElementsByTagName("tr") : [];
+    if (trs.length < (page - 1) * page_size) {
+      setAllLoaded(true);
+    } else {
+      setAllLoaded(false);
+    }
+  }, [page, page_size]);
+
   return (
     <>
       <table>
@@ -55,7 +65,7 @@ export default function PaginatedLemmata({
             <th style={{ textAlign: "left" }}>created</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id={"data-store"}>
           {[...Array(page).keys()].map((i) => {
             return (
               <LemmaSetDisplayer
@@ -69,7 +79,10 @@ export default function PaginatedLemmata({
         </tbody>
       </table>
       <br />
-      <button onClick={() => setPage(page + 1)}>Load more</button>
+      {!allLoaded && (
+        <button onClick={() => setPage(page + 1)}>Load more</button>
+      )}
+      {allLoaded && <div>All data returned. ₍ᐢ. ̫.ᐢ₎</div>}
     </>
   );
 }

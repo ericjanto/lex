@@ -19,7 +19,9 @@ dbdevadd:
 	cp $(BASE_VOCAB_PATH) t.txt
 	rm $(BASE_VOCAB_PATH)
 	touch $(BASE_VOCAB_PATH)
-	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-1.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-2.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-3.txt)
 	cp t.txt $(BASE_VOCAB_PATH)
 	rm t.txt
 bsetup:

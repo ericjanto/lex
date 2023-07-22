@@ -151,7 +151,7 @@ def set_api_env():
     Set the API environment to production or development.
     """
     api_env = typer.prompt(
-        "Which API environment would you like to connect to?",
+        "Connect to API environment at DEV or PROD url?",
         type=ApiEnvironment,
         default=ApiEnvironment.DEV,
     )

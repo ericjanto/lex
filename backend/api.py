@@ -54,7 +54,7 @@ def set_db_env(env: DbEnvironment):
 
 
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.PROD)
+    set_db_env(DbEnvironment.DEV)
 else:
     set_db_env(DbEnvironment.DEV)
 

@@ -106,10 +106,7 @@ class LexDbIntegrator:
         sql = "INSERT IGNORE INTO source_kind (kind) VALUES (%s)"
         cursor.execute(sql, (source_kind.value,))
         self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        skid = SourceKindId(cursor.fetchall()[0][0])
-        if skid == 0:
-            skid = self.get_source_kind_id(source_kind)
+        skid = self.get_source_kind_id(source_kind)
         cursor.close()
         return skid
 
@@ -260,10 +257,7 @@ class LexDbIntegrator:
         sql = "INSERT INTO lemma (lemma, status_id) VALUES (%s, %s)"
         cursor.execute(sql, (lemma.lemma, lemma.status_id))
         self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        lemma_id = LemmaId(cursor.fetchall()[0][0])
-        if lemma_id == 0:
-            lemma_id = self.get_lemma_id(lemma.lemma)
+        lemma_id = self.get_lemma_id(lemma.lemma)
         cursor.close()
         return lemma_id
 

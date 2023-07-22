@@ -51,18 +51,20 @@ export default function Page({ params }: { params: { statusVal: StatusVal } }) {
         gap: "2px",
       }}
     >
-      {copiedIds.map((id) => (
-        <code
-          key={id}
-          style={{
-            border: "1px solid black",
-            padding: "2px",
-            textAlign: "center",
-          }}
-        >
-          {id}
-        </code>
-      ))}
+      {copiedIds
+        .sort((a, b) => a - b)
+        .map((id) => (
+          <code
+            key={id}
+            style={{
+              border: "1px solid black",
+              padding: "2px",
+              textAlign: "center",
+            }}
+          >
+            {id}
+          </code>
+        ))}
     </div>
   );
 
@@ -88,10 +90,8 @@ export default function Page({ params }: { params: { statusVal: StatusVal } }) {
         <div>
           <code>shift+ctrl+c</code> to copy
         </div>
-        <br />
-        <div>
-          {grid}
-        </div>
+        {copiedIds.length > 0 && <br />}
+        <div>{grid}</div>
       </details>
       <PaginatedLemmata
         fetchQuery={`${API_BASE_URL}/status_lemmata?status_val=${params.statusVal}`}

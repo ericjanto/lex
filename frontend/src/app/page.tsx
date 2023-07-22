@@ -6,7 +6,10 @@ export default function Page() {
   return (
     <ul style={{listStyleType: 'none', paddingLeft: '0', marginTop: '0'}}>
       <li>
-        <Link href="/contexts">/contexts</Link>
+        <Link href="/context">/context</Link>
+      </li>
+      <li>
+        <Link href="/sources">/sources</Link>
       </li>
       <li>
         <Link href="/status/staged">/status/staged</Link>

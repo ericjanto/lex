@@ -13,7 +13,7 @@ export type Lemma = {
 const lemmaFetcher: Fetcher<Lemma> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
 
-export default function Lemma({ lemmaId }: { lemmaId: number }) {
+export default function LemmaOverview({ lemmaId }: { lemmaId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
     `${API_BASE_URL}/lemma/${lemmaId}`,
     lemmaFetcher
@@ -39,13 +39,13 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
             </thead>
             <tbody>
               <tr>
-                <td style={borderStyle}>Created</td>
+                <td style={borderStyle}>created</td>
                 <td style={borderStyle}>
                   {data!.created.substring(0, "yyyy-mm-dd".length)}
                 </td>
               </tr>
               <tr>
-                <td style={borderStyle}>Status</td>
+                <td style={borderStyle}>status</td>
                 <td style={borderStyle}>
                   <Status statusId={data!.status_id} />
                 </td>

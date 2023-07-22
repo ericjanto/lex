@@ -146,7 +146,6 @@ class LexDbIntegrator:
         Adds a new source to the database if it doesn't exist already.
         Returns -1 if aborted because of invalid source kind id.
         """
-        print("here")
         if not self.get_source_kind(source.source_kind_id):
             return SourceId(-1)
 
@@ -178,6 +177,7 @@ class LexDbIntegrator:
         """
         Returns a Source object. Returns None if the source doesn't
         exist.
+
         """
         cursor = self.connection.cursor()
         sql = "SELECT * FROM source WHERE id = %s"
@@ -194,6 +194,37 @@ class LexDbIntegrator:
 
         cursor.close()
         return source
+
+    def get_paginated_sources(
+        self, page: int, page_size: int, source_kind_id: Union[int, None]
+    ) -> list[Source]:
+        """
+        Returns a list of all sources within the pagination range.
+
+        Filters by source_kind_id, if provided.
+        """
+        cursor = self.connection.cursor()
+        if source_kind_id:
+            sql = (
+                "SELECT * FROM source WHERE source_kind_id = %s ORDER BY id"
+                " LIMIT %s OFFSET %s"
+            )
+            cursor.execute(
+                sql, (source_kind_id, page_size, page_size * (page - 1))
+            )
+        else:
+            sql = "SELECT * FROM source ORDER BY id LIMIT %s OFFSET %s"
+            cursor.execute(sql, (page_size, page_size * (page - 1)))
+
+        sources = [
+            parse_obj_as(
+                Source,
+                {"id": res[0], "title": res[1], "source_kind_id": res[2]},
+            )
+            for res in cursor.fetchall()
+        ]
+        cursor.close()
+        return sources
 
     def add_status(self, status_val: StatusVal) -> StatusId:
         """
@@ -504,6 +535,33 @@ class LexDbIntegrator:
         cursor = self.connection.cursor()
         sql = "SELECT * FROM context ORDER BY id LIMIT %s OFFSET %s"
         cursor.execute(sql, (page_size, page_size * (page - 1)))
+        contexts = [
+            parse_obj_as(
+                Context,
+                {
+                    "id": res[0],
+                    "context_value": res[1],
+                    "created": res[2],
+                    "source_id": res[3],
+                },
+            )
+            for res in cursor.fetchall()
+        ]
+        cursor.close()
+        return contexts
+
+    def get_paginated_source_contexts(
+        self, source_id: SourceId, page: int, page_size: int
+    ) -> list[Context]:
+        """
+        Returns a list of contexts.
+        """
+        cursor = self.connection.cursor()
+        sql = (
+            "SELECT * FROM context WHERE source_id = %s ORDER BY id LIMIT %s"
+            " OFFSET %s"
+        )
+        cursor.execute(sql, (source_id, page_size, page_size * (page - 1)))
         contexts = [
             parse_obj_as(
                 Context,

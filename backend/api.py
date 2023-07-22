@@ -28,6 +28,7 @@ from backend.dbtypes import (
     LemmaSourceRelation,
     Source,
     SourceId,
+    SourceKind,
     SourceKindId,
     SourceKindVal,
     Status,
@@ -54,7 +55,7 @@ def set_db_env(env: DbEnvironment):
 
 
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.DEV)
+    set_db_env(DbEnvironment.PROD)  # TODO @ej verify this before deploying
 else:
     set_db_env(DbEnvironment.DEV)
 
@@ -129,6 +130,32 @@ async def get_lemma_contexts(
     lemma_id: LemmaId, page: int, page_size: int
 ) -> list[Context]:
     return db.get_lemma_contexts(lemma_id, page, page_size)
+
+
+@app.get("/sources")
+async def get_sources(
+    page: int, page_size: int, source_kind_id: Union[int, None] = None
+) -> list[Source]:
+    return db.get_paginated_sources(page, page_size, source_kind_id)
+
+
+@app.get("/source/{source_id}")
+async def get_source(source_id: SourceId) -> Union[Source, None]:
+    return db.get_source(source_id)
+
+
+@app.get("/source_kind/{source_kind_id}")
+async def get_source_kind(
+    source_kind_id: SourceKindId,
+) -> Union[SourceKind, None]:
+    return db.get_source_kind(source_kind_id)
+
+
+@app.get("/source_contexts/{source_id}")
+async def get_source_contexts(
+    source_id: SourceId, page: int, page_size: int
+) -> list[Context]:
+    return db.get_paginated_source_contexts(source_id, page, page_size)
 
 
 @app.post("/lemma")

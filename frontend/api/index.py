@@ -1,5 +1,6 @@
-from backend.utils import relativy_path
 from fastapi import FastAPI
+
+from ...backend.utils import relativy_path
 
 app = FastAPI()
 

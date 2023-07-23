@@ -895,7 +895,7 @@ class LexDbIntegrator:
         cursor.execute(sql, (lemma_id,))
         source_ids = {t[0] for t in cursor.fetchall() or []}
 
-        # delete all entries in lemmat_source with the lemma id:
+        # delete all entries in lemma_source with the lemma id:
         sql = "DELETE FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
         self.connection.commit()
@@ -912,6 +912,21 @@ class LexDbIntegrator:
                     "DELETE FROM source WHERE id = %s", (source_id,)
                 )
                 self.connection.commit()
+
+        # get the found_in_value of the lemma:
+        cursor.execute(
+            "SELECT found_in_source FROM lemma WHERE id = %s LIMIT 1",
+            (lemma_id,),
+        )
+        found_in_source = cursor.fetchall()[0][0]
+
+        # increase the removed_lemmata_num of the source, if it still exists:
+        if source := self.get_source(found_in_source):
+            cursor.execute(
+                "UPDATE source SET removed_lemmata_num = %s WHERE id = %s",
+                (source.removed_lemmata_num + 1, found_in_source),
+            )
+            self.connection.commit()
 
         # get all context ids associated with the lemma from lemma_context:
         sql = "SELECT context_id FROM lemma_context WHERE lemma_id = %s"

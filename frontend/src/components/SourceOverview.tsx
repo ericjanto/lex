@@ -2,11 +2,15 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import { API_BASE_URL } from "@/lib/const";
 import SourceKind from "@/components/SourceKind";
+import Link from "next/link";
 
 export type Source = {
   id: number;
   title: string;
   source_kind_id: number;
+  author: string;
+  lang: string;
+  removed_lemmata_num: number;
 };
 
 const sourceFetcher: Fetcher<Source> = (url: RequestInfo | URL) =>
@@ -56,9 +60,23 @@ export default function SourceOverview({ sourceId }: { sourceId: number }) {
           </thead>
           <tbody>
             <tr>
+              <td style={borderStyle}>author</td>
+              <td style={borderStyle}>
+                <Link href={`/sources?author=${data!.author}`}>
+                  {data!.author}
+                </Link>
+              </td>
+            </tr>
+            <tr>
               <td style={borderStyle}>category</td>
               <td style={borderStyle}>
                 <SourceKind sourceKindId={data!.source_kind_id} />
+              </td>
+            </tr>
+            <tr>
+              <td style={borderStyle}>language</td>
+              <td style={borderStyle}>
+                <Link href={`/sources?lang=${data!.lang}`}>{data?.lang}</Link>
               </td>
             </tr>
           </tbody>

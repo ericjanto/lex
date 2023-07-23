@@ -139,9 +139,13 @@ class LexDbIntegrator:
 
         cursor = self.connection.cursor()
         sql = (
-            "INSERT IGNORE INTO source (title, source_kind_id) VALUES (%s, %s)"
+            "INSERT IGNORE INTO source (title, source_kind_id, author, lang)"
+            " VALUES (%s, %s, %s, %s)"
         )
-        cursor.execute(sql, (source.title, source.source_kind_id))
+        cursor.execute(
+            sql,
+            (source.title, source.source_kind_id, source.author, source.lang),
+        )
         self.connection.commit()
         cursor.execute("SELECT LAST_INSERT_ID()")
         sid = SourceId(cursor.fetchall()[0][0])
@@ -174,7 +178,14 @@ class LexDbIntegrator:
         source = (
             parse_obj_as(
                 Source,
-                {"id": res[0], "title": res[1], "source_kind_id": res[2]},
+                {
+                    "id": res[0],
+                    "title": res[1],
+                    "source_kind_id": res[2],
+                    "author": res[3],
+                    "lang": res[4],
+                    "removed_lemmata_num": res[5],
+                },
             )
             if (res := cursor.fetchone())
             else None
@@ -184,30 +195,45 @@ class LexDbIntegrator:
         return source
 
     def get_paginated_sources(
-        self, page: int, page_size: int, source_kind_id: Union[int, None]
+        self,
+        page: int,
+        page_size: int,
+        filter_params: Union[dict[str, Union[int, str]], None] = None,
     ) -> list[Source]:
         """
         Returns a list of all sources within the pagination range.
 
-        Filters by source_kind_id, if provided.
+        filter_params is an optional filter parameter which is a dict of
+        {column_name: value} items.
         """
         cursor = self.connection.cursor()
-        if source_kind_id:
-            sql = (
-                "SELECT * FROM source WHERE source_kind_id = %s ORDER BY id"
-                " LIMIT %s OFFSET %s"
-            )
-            cursor.execute(
-                sql, (source_kind_id, page_size, page_size * (page - 1))
-            )
-        else:
-            sql = "SELECT * FROM source ORDER BY id LIMIT %s OFFSET %s"
-            cursor.execute(sql, (page_size, page_size * (page - 1)))
+        sql = "SELECT * FROM source"
+        if filter_params:
+            for i, param in enumerate(filter_params.items() or []):
+                sql += " WHERE" if i == 0 else " AND"
+                sql += f" {param[0]} = %s"
+        sql += " ORDER BY id LIMIT %s OFFSET %s"
+
+        cursor.execute(
+            sql,
+            (
+                *list(filter_params.values() if filter_params else []),
+                page_size,
+                page_size * (page - 1),
+            ),
+        )
 
         sources = [
             parse_obj_as(
                 Source,
-                {"id": res[0], "title": res[1], "source_kind_id": res[2]},
+                {
+                    "id": res[0],
+                    "title": res[1],
+                    "source_kind_id": res[2],
+                    "author": res[3],
+                    "lang": res[4],
+                    "removed_lemmata_num": res[5],
+                },
             )
             for res in cursor.fetchall()
         ]

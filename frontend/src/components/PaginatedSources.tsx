@@ -33,7 +33,15 @@ function SourceSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
               <Link href={`/source/${source.id}`}>{source.title}</Link>
             </td>
             <td>
+              <Link href={`/sources?author=${source.author}`}>
+                {source.author}
+              </Link>
+            </td>
+            <td>
               <SourceKind sourceKindId={source.source_kind_id} />
+            </td>
+            <td>
+              <Link href={`/sources?lang=${source.lang}`}>{source.lang}</Link>
             </td>
           </tr>
         );
@@ -62,7 +70,6 @@ export default function PaginatedSources({
     }
   }, [page, page_size]);
 
-  console.log(fetchQuery);
   return (
     <>
       <table>
@@ -70,7 +77,9 @@ export default function PaginatedSources({
           <tr>
             <th style={{ textAlign: "left" }}>id</th>
             <th style={{ textAlign: "left" }}>title</th>
+            <th style={{ textAlign: "left" }}>author</th>
             <th style={{ textAlign: "left" }}>category</th>
+            <th style={{ textAlign: "left" }}>language</th>
           </tr>
         </thead>
         <tbody id={"data-store"}>

@@ -35,7 +35,7 @@ class SourceKindVal(Enum):
     ARTICLE = "article"
     CONVERSATION = "conversation"
     FILM = "film"
-    # OTHER = "other"
+    OTHER = "other"
 
 
 class UposTag(Enum):
@@ -93,9 +93,9 @@ class Source(ConfiguredBaseModel):
     id: SourceId = SourceId(-1)
     title: str
     source_kind_id: SourceKindId
-    # author: str
-    # lang: str
-    # removed_lemmata_num: int = 0
+    author: str
+    lang: str
+    removed_lemmata_num: int = 0
 
 
 class SourceMetadata(ConfiguredBaseModel):

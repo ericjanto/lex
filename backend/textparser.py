@@ -117,7 +117,10 @@ class TextParser:
 
         source_kind_id = self.api.post_source_kind(source_metadata.source_kind)
         source_id = self.api.post_source(
-            title=source_metadata.title, source_kind_id=source_kind_id
+            title=source_metadata.title,
+            source_kind_id=source_kind_id,
+            author=source_metadata.author,
+            lang=source_metadata.language,
         )
         status_id_staged = self.api.post_status(StatusVal.STAGED)
 

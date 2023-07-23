@@ -29,8 +29,8 @@ CREATE TABLE
             'book',
             'article',
             'conversation',
-            'film'
-            -- 'other'
+            'film',
+            'other'
         ) NOT NULL UNIQUE
     );
 
@@ -40,17 +40,17 @@ VALUES
     ('book'),
     ('article'),
     ('conversation'),
-    ('film');
-    -- ('other');
+    ('film'),
+    ('other');
 
 CREATE TABLE
     IF NOT EXISTS source (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
         source_kind_id INTEGER NOT NULL,
-        -- author VARCHAR(50) NOT NULL,
-        -- lang VARCHAR(50) NOT NULL,
-        -- removed_lemmata_num INTEGER NOT NULL DEFAULT 0,
+        author VARCHAR(50) NOT NULL,
+        lang VARCHAR(50) NOT NULL,
+        removed_lemmata_num INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT unique_title_kind_id UNIQUE (title, source_kind_id)
     );
 

@@ -134,9 +134,20 @@ async def get_lemma_contexts(
 
 @app.get("/sources")
 async def get_sources(
-    page: int, page_size: int, source_kind_id: Union[int, None] = None
+    page: int,
+    page_size: int,
+    author: Union[str, None] = None,
+    lang: Union[str, None] = None,
+    source_kind_id: Union[SourceKindId, None] = None,
 ) -> list[Source]:
-    return db.get_paginated_sources(page, page_size, source_kind_id)
+    args = locals()
+    filter_params = {
+        k: v
+        for k, v in args.items()
+        if v is not None and k not in ["page", "page_size"]
+    } or None
+
+    return db.get_paginated_sources(page, page_size, filter_params)
 
 
 @app.get("/source/{source_id}")
@@ -288,11 +299,16 @@ class ApiRequestor:
         return skid
 
     def post_source(
-        self, title: str, source_kind_id: SourceKindId
+        self, title: str, source_kind_id: SourceKindId, author: str, lang: str
     ) -> SourceId:
         r = requests.post(
             f"{self.api_url}/source",
-            json=Source(title=title, source_kind_id=source_kind_id).to_dict(),
+            json=Source(
+                title=title,
+                source_kind_id=source_kind_id,
+                author=author,
+                lang=lang,
+            ).to_dict(),
         )
         assert r.status_code == 200
         assert (sid := SourceId(r.json())) != -1

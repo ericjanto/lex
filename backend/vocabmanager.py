@@ -55,19 +55,19 @@ class VocabManager:
         )
 
     def commit_lemma(self, lemma: str):
-        committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
+        committed_status_id = self.api.post_status(StatusVal.COMMITTED)
         lemma_id = self.api.get_lemma_id(lemma)
         return self.api.update_multiple_status({lemma_id}, committed_status_id)
 
     def commit_lemmata(self, lemma_ids: set[LemmaId]):
-        committed_status_id = self.api.get_lemma_status(StatusVal.COMMITTED)
+        committed_status_id = self.api.post_status(StatusVal.COMMITTED)
         return self.api.update_multiple_status(lemma_ids, committed_status_id)
 
     def push_lemma(self, lemma: str):
-        pushed_status_id = self.api.get_lemma_status(StatusVal.PUSHED)
+        pushed_status_id = self.api.post_status(StatusVal.PUSHED)
         lemma_id = self.api.get_lemma_id(lemma)
         return self.api.update_multiple_status({lemma_id}, pushed_status_id)
 
     def push_lemmata(self, lemma_ids: set[LemmaId]):
-        pushed_status_id = self.api.get_lemma_status(StatusVal.PUSHED)
+        pushed_status_id = self.api.post_status(StatusVal.PUSHED)
         return self.api.update_multiple_status(lemma_ids, pushed_status_id)

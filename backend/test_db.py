@@ -58,6 +58,33 @@ class TestInexpensiveDbMethods:
             db.truncate_all_tables()
 
 
+def reset_and_populate(db: LexDbIntegrator):
+    # TODO @ej refactor duplicated code into methods like this
+    db.truncate_all_tables()
+    source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+    source_id = db.add_source(
+        Source(title="The Hobbit", source_kind_id=source_kind_id)
+    )
+    lemma_id = db.add_lemma(
+        Lemma(
+            lemma="hobbit",
+            status_id=db.add_status(StatusVal.STAGED),
+            found_in_source=source_id,
+        )
+    )
+    context_id = db.add_context(
+        Context(context_value="somecontext", source_id=source_id)
+    )
+    db.add_lemma_context_relation(
+        LemmaContextRelation(
+            lemma_id=lemma_id,
+            context_id=context_id,
+            upos_tag=UposTag.NOUN,
+            detailed_tag="NN",
+        )
+    )
+
+
 @db_changed
 class TestExpensiveDbMethods:
     def test_truncate_all_tables_success(self, db: LexDbIntegrator):
@@ -75,21 +102,19 @@ class TestExpensiveDbMethods:
         ]
 
         db.add_source_kind(SourceKindVal.BOOK)
-        # add new lemma_status
         status_id = db.add_status(StatusVal.STAGED)
-        # add new lemma
-        lemma_id = db.add_lemma(Lemma(lemma="hobbit", status_id=status_id))
-        # add new source
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
-        # add new lemma_source
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
         )
-        # add new context
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="hobbit", status_id=status_id, found_in_source=source_id
+            )
+        )
         context_id = db.add_context(
             Context(context_value="somecontext", source_id=source_id)
         )
-        # add new lemma_context
         db.add_lemma_context_relation(
             LemmaContextRelation(
                 lemma_id=lemma_id,
@@ -141,7 +166,7 @@ class TestExpensiveDbMethods:
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         assert (
             db.add_source(
-                Source(title="The Hobbit", source_kind_id=source_kind_id)
+                Source(title="The Hobbit 2", source_kind_id=source_kind_id)
             )
             == 1
         )
@@ -211,29 +236,68 @@ class TestExpensiveDbMethods:
     def test_get_status_by_lemma_valid_lemma_id(self, db: LexDbIntegrator):
         status_val = StatusVal.STAGED
         status_id = db.add_status(status_val)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         assert (s := db.get_lemma_status(lemma_id)) is not None
         assert s.status == status_val
 
     def test_add_lemma_invalid_status_id(self, db: LexDbIntegrator):
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
         assert (
-            db.add_lemma(Lemma(lemma="test-lemma", status_id=StatusId(-1)))
+            db.add_lemma(
+                Lemma(
+                    lemma="test-lemma",
+                    status_id=StatusId(-1),
+                    found_in_source=source_id,
+                )
+            )
             == -1
         )
 
     def test_add_lemma_valid_status_id(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
         assert (
-            db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id)) != -1
+            db.add_lemma(
+                Lemma(
+                    lemma="test-lemma",
+                    status_id=status_id,
+                    found_in_source=source_id,
+                )
+            )
+            != -1
         )
 
     def test_add_lemma_same_lemma_twice(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
         lemma_id_1 = db.add_lemma(
-            Lemma(lemma="test-lemma", status_id=status_id)
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
         )
         lemma_id_2 = db.add_lemma(
-            Lemma(lemma="test-lemma", status_id=status_id)
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
         )
         assert lemma_id_1 == lemma_id_2
 
@@ -242,7 +306,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_id_valid_lemma(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        db.add_lemma(Lemma(lemma="test_lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        db.add_lemma(
+            Lemma(
+                lemma="test_lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         assert db.get_lemma_id("test_lemma") != -1
 
     def test_get_lemma_invalid_lemma_id(self, db: LexDbIntegrator):
@@ -250,7 +323,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_valid_lemma_id(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         assert db.get_lemma(lemma_id) is not None
 
     def test_add_lemma_source_invalid_ids(self, db: LexDbIntegrator):
@@ -265,7 +347,16 @@ class TestExpensiveDbMethods:
 
     def test_add_lemma_source_valid_ids(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -280,7 +371,16 @@ class TestExpensiveDbMethods:
     def test_add_lemma_source_multiple_return_ids(self, db: LexDbIntegrator):
         db.truncate_all_tables()
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -305,7 +405,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_sources_ids_valid_lemma_id(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id_1 = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -329,7 +438,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_source_ids_valid_ids(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -416,7 +534,16 @@ class TestExpensiveDbMethods:
     def test_add_lemma_context_valid_ids(self, db: LexDbIntegrator):
         db.truncate_all_tables()
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -453,7 +580,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_context_relations_valid_ids(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -478,8 +614,15 @@ class TestExpensiveDbMethods:
     def test_update_lemma_status_valid_ids(self, db: LexDbIntegrator):
         old_status_id = db.add_status(StatusVal.STAGED)
         new_status_id = db.add_status(StatusVal.COMMITTED)
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
         lemma_id = db.add_lemma(
-            Lemma(lemma="test_lemma", status_id=old_status_id)
+            Lemma(
+                lemma="test_lemma",
+                status_id=old_status_id,
+                found_in_source=source_id,
+            )
         )
         assert db.update_lemmata_status([lemma_id], new_status_id)
 
@@ -497,7 +640,16 @@ class TestExpensiveDbMethods:
         self, db: LexDbIntegrator
     ):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -522,7 +674,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_context(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -543,7 +704,16 @@ class TestExpensiveDbMethods:
 
     def test_get_lemma_contexts(self, db: LexDbIntegrator):
         status_id = db.add_status(StatusVal.STAGED)
-        lemma_id = db.add_lemma(Lemma(lemma="test-lemma", status_id=status_id))
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
+        lemma_id = db.add_lemma(
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
+        )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id = db.add_source(
             Source(title="The Hobbit", source_kind_id=source_kind_id)
@@ -568,11 +738,22 @@ class TestExpensiveDbMethods:
         assert db.delete_lemma(LemmaId(-1)) is False
         # set up the test scenario described above
         status_id = db.add_status(StatusVal.STAGED)
+        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+        source = Source(title="The Hobbit", source_kind_id=source_kind_id)
+        source_id = db.add_source(source)
         lemma_id_delete = db.add_lemma(
-            Lemma(lemma="test-lemma", status_id=status_id)
+            Lemma(
+                lemma="test-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
         )
         lemma_id_remain = db.add_lemma(
-            Lemma(lemma="remain-lemma", status_id=status_id)
+            Lemma(
+                lemma="remain-lemma",
+                status_id=status_id,
+                found_in_source=source_id,
+            )
         )
         source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
         source_id_delete = db.add_source(

@@ -159,7 +159,9 @@ class TextParser:
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),
-                        self.api.post_lemma(lemma, status_id_staged),
+                        self.api.post_lemma(
+                            lemma, status_id_staged, source_id
+                        ),
                         t.tag_,
                         UposTag(t.pos_),
                     )

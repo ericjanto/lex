@@ -55,7 +55,7 @@ def set_db_env(env: DbEnvironment):
 
 
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.PROD)  # TODO @ej verify this before deploying
+    set_db_env(DbEnvironment.DEV)  # TODO @ej verify this before deploying
 else:
     set_db_env(DbEnvironment.DEV)
 
@@ -258,10 +258,14 @@ class ApiRequestor:
         assert r.status_code == 200
         return r.json()
 
-    def post_lemma(self, lemma: str, status_id: StatusId) -> LemmaId:
+    def post_lemma(
+        self, lemma: str, status_id: StatusId, source_id: SourceId
+    ) -> LemmaId:
         r = requests.post(
             f"{self.api_url}/lemma",
-            json=Lemma(lemma=lemma, status_id=status_id).to_dict(),
+            json=Lemma(
+                lemma=lemma, status_id=status_id, found_in_source=source_id
+            ).to_dict(),
         )
         assert r.status_code == 200
         assert (lid := LemmaId(r.json())) != -1

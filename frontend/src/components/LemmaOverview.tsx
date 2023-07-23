@@ -2,12 +2,15 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import Status from "@/components/Status";
 import { API_BASE_URL } from "@/lib/const";
+import Link from "next/link";
+import { SourceTitle } from "@/components/SourceOverview";
 
 export type Lemma = {
   id: number;
   lemma: string;
   created: string;
   status_id: number;
+  found_in_source: number;
 };
 
 const lemmaFetcher: Fetcher<Lemma> = (url: RequestInfo | URL) =>
@@ -38,6 +41,14 @@ export default function LemmaOverview({ lemmaId }: { lemmaId: number }) {
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <td style={borderStyle}>first found in</td>
+                <td style={borderStyle}>
+                  <Link href={`/source/${data!.found_in_source}`}>
+                    <SourceTitle sourceId={data!.found_in_source} />
+                  </Link>
+                </td>
+              </tr>
               <tr>
                 <td style={borderStyle}>created</td>
                 <td style={borderStyle}>

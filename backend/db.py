@@ -57,19 +57,7 @@ class LexDbIntegrator:
             passwd=passwd,
             db=db,
             autocommit=True,
-            # ssl_mode=ssl_mode,
-            # ssl=ssl,
         )
-
-        # self.connection = MySQLdb.connect(
-        #     host=host,
-        #     user=user,
-        #     passwd=passwd,
-        #     db=db,
-        #     autocommit=True,
-        #     ssl_mode=ssl_mode,
-        #     ssl=ssl,
-        # )
 
     def close_connection(self):
         """
@@ -284,9 +272,17 @@ class LexDbIntegrator:
         if (lemma_id := self.get_lemma_id(lemma.lemma)) != -1:
             return lemma_id
 
+        if not self.get_source(lemma.found_in_source):
+            return LemmaId(-1)
+
         cursor = self.connection.cursor()
-        sql = "INSERT INTO lemma (lemma, status_id) VALUES (%s, %s)"
-        cursor.execute(sql, (lemma.lemma, lemma.status_id))
+        sql = (
+            "INSERT INTO lemma (lemma, status_id, found_in_source) VALUES (%s,"
+            " %s, %s)"
+        )
+        cursor.execute(
+            sql, (lemma.lemma, lemma.status_id, lemma.found_in_source)
+        )
         self.connection.commit()
         lemma_id = self.get_lemma_id(lemma.lemma)
         cursor.close()
@@ -297,7 +293,7 @@ class LexDbIntegrator:
         Returns a lemma. Returns None if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE id = %s"
+        sql = "SELECT * FROM lemma WHERE id = %s LIMIT 1"
         cursor.execute(sql, (lemma_id,))
 
         lemma = (
@@ -308,6 +304,7 @@ class LexDbIntegrator:
                     "lemma": res[1],
                     "created": res[2],
                     "status_id": res[3],
+                    "found_in_source": res[4],
                 },
             )
             if (res := (cursor.fetchall() or [[]])[0])
@@ -335,7 +332,13 @@ class LexDbIntegrator:
             cursor.execute(sql, (status_id,))
 
         return [
-            Lemma(id=row[0], lemma=row[1], created=row[2], status_id=row[3])
+            Lemma(
+                id=row[0],
+                lemma=row[1],
+                created=row[2],
+                status_id=row[3],
+                found_in_source=row[4],
+            )
             for row in cursor.fetchall()
         ]
 
@@ -366,27 +369,29 @@ class LexDbIntegrator:
         Returns the id of a lemma. Returns -1 if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE lemma = %s"
+        sql = "SELECT id FROM lemma WHERE lemma = %s"
         cursor.execute(sql, (lemma_value,))
-        if lemma := (
-            parse_obj_as(
-                Lemma,
-                {
-                    "id": res[0],
-                    "lemma": res[1],
-                    "created": res[2],
-                    "status_id": res[3],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
-        ):
-            lemma_id = lemma.id
-        else:
-            lemma_id = LemmaId(-1)
+        # if lemma := (
+        #     parse_obj_as(
+        #         Lemma,
+        #         {
+        #             "id": res[0],
+        #             "lemma": res[1],
+        #             "created": res[2],
+        #             "status_id": res[3],
+        #         },
+        #     )
+        #     if ()
+        #     else None
+        # ):
+        lemma_id = (
+            LemmaId(res[0][0]) if (res := cursor.fetchall()) else LemmaId(-1)
+        )
+        # else:
+        # lemma_id = LemmaId(-1)
 
         cursor.close()
-        return LemmaId(lemma_id)
+        return lemma_id
 
     def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """

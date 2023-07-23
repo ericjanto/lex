@@ -1,7 +1,9 @@
 .PHONY: apidev apiprod apidocs apischema dbdev dbprod dbdevadd setup setupvalidate testall testlf
+.DEFAULT_GOAL := apiprod
 
-PYTHON=python3
-BASE_VOCAB_PATH=backend/assets/reference-vocabulary/vocabulary.base.txt
+PYTHON ?= python3
+BASE_VOCAB_PATH ?= backend/assets/reference-vocabulary/vocabulary.base.txt
+
 
 apidev:
 	uvicorn backend.api:app --reload

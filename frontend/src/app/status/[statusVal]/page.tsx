@@ -7,14 +7,6 @@ import { useEffect, useState } from "react";
 export type StatusVal = "staged" | "committed" | "pushed";
 
 export default function Page({ params }: { params: { statusVal: StatusVal } }) {
-  if (
-    params.statusVal !== "staged" &&
-    params.statusVal !== "committed" &&
-    params.statusVal !== "pushed"
-  ) {
-    return <div>Invalid status value</div>;
-  }
-
   const [copiedIds, setCopiedIds] = useState<number[]>([]);
 
   useEffect(() => {
@@ -41,6 +33,14 @@ export default function Page({ params }: { params: { statusVal: StatusVal } }) {
       }
     });
   }, [copiedIds]);
+
+  if (
+    params.statusVal !== "staged" &&
+    params.statusVal !== "committed" &&
+    params.statusVal !== "pushed"
+  ) {
+    return <div>Invalid status value</div>;
+  }
 
   const grid = (
     <div

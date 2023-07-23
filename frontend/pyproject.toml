@@ -1,0 +1,23 @@
+[tool.ruff]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "UP", # pyupgrade
+]
+line-length = 79 # Same as Black.
+target-version = "py39"
+exclude = [
+    "uncommitted",
+]
+
+[tool.black]
+line-length = 79
+preview = true
+organize-imports = false
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 79
+profile = "black"

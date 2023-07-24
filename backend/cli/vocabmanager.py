@@ -6,9 +6,10 @@ Collection of functionality to show and modify the vocabulary.
 
 from typing import Union
 
-from .api import ApiEnvironment, ApiRequestor
-from .const import Const
-from .dbtypes import LemmaId, StatusVal
+from api.const import Const
+from api.dbtypes import LemmaId, StatusVal
+from api.index import ApiEnvironment, ApiRequestor
+
 from .textparser import TextParser
 
 

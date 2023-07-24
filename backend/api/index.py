@@ -14,9 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from rich import print as rprint
 
-from .const import Const
-from .db import LexDbIntegrator
-from .dbtypes import (
+from ._const import Const
+from ._db import LexDbIntegrator
+from ._dbtypes import (
     Context,
     ContextId,
     DbEnvironment,
@@ -36,13 +36,6 @@ from .dbtypes import (
     StatusVal,
     UposTag,
 )
-
-# # Get the current directory (where api.py is located)
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# # Add the current directory to the Python path
-# sys.path.append(current_dir)
-
 
 origins = ["*"]
 app = FastAPI()

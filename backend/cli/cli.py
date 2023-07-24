@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import typer
+from api.dbtypes import LemmaId
+from api.index import ApiEnvironment
 from rich import print as rprint
 
-from .api import ApiEnvironment
 from .contentextractor import ContentExtractor
-from .dbtypes import LemmaId
 from .textparser import TextParser
 from .vocabmanager import VocabManager
 
@@ -158,6 +158,9 @@ def set_api_env():
     rprint(f"[green]Communicating with {api_env.value} API.")
 
 
-if __name__ == "__main__":
+def main():
     set_api_env()
     cli()
+
+
+# if __name__ == "__main__":

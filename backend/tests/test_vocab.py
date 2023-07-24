@@ -2,8 +2,8 @@ import subprocess
 
 import pytest
 
-from ..api.const import Const
-from ..api.utils import buf_count_newlines
+from ..api._const import Const
+from ..api._utils import buf_count_newlines
 
 base_vocab_changed = pytest.mark.skipif(
     condition=not bool(

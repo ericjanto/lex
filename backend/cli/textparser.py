@@ -12,17 +12,16 @@ from typing import NamedTuple
 
 import en_core_web_trf
 import spacy
+from api.const import Const
+from api.dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api.index import ApiEnvironment, ApiRequestor
+from api.utils import buf_count_newlines
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant
 )
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
-
-from .api import ApiEnvironment, ApiRequestor
-from .const import Const
-from .dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from .utils import buf_count_newlines
 
 
 class IntermediaryDbDatum(NamedTuple):

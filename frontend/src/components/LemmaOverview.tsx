@@ -2,18 +2,21 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import Status from "@/components/Status";
 import { API_BASE_URL } from "@/lib/const";
+import Link from "next/link";
+import { SourceTitle } from "@/components/SourceOverview";
 
 export type Lemma = {
   id: number;
   lemma: string;
   created: string;
   status_id: number;
+  found_in_source: number;
 };
 
 const lemmaFetcher: Fetcher<Lemma> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
 
-export default function Lemma({ lemmaId }: { lemmaId: number }) {
+export default function LemmaOverview({ lemmaId }: { lemmaId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
     `${API_BASE_URL}/lemma/${lemmaId}`,
     lemmaFetcher
@@ -39,13 +42,21 @@ export default function Lemma({ lemmaId }: { lemmaId: number }) {
             </thead>
             <tbody>
               <tr>
-                <td style={borderStyle}>Created</td>
+                <td style={borderStyle}>first found in</td>
+                <td style={borderStyle}>
+                  <Link href={`/source/${data!.found_in_source}`}>
+                    <SourceTitle sourceId={data!.found_in_source} />
+                  </Link>
+                </td>
+              </tr>
+              <tr>
+                <td style={borderStyle}>created</td>
                 <td style={borderStyle}>
                   {data!.created.substring(0, "yyyy-mm-dd".length)}
                 </td>
               </tr>
               <tr>
-                <td style={borderStyle}>Status</td>
+                <td style={borderStyle}>status</td>
                 <td style={borderStyle}>
                   <Status statusId={data!.status_id} />
                 </td>

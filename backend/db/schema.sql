@@ -18,7 +18,8 @@ CREATE TABLE
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         lemma VARCHAR(100) NOT NULL UNIQUE,
         created DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status_id INTEGER NOT NULL
+        status_id INTEGER NOT NULL,
+        found_in_source INTEGER NOT NULL
     );
 
 CREATE TABLE
@@ -28,23 +29,28 @@ CREATE TABLE
             'book',
             'article',
             'conversation',
-            'film'
+            'film',
+            'other'
         ) NOT NULL UNIQUE
     );
 
 INSERT INTO
-    source_kind (status)
+    source_kind (kind)
 VALUES
     ('book'),
     ('article'),
-    ('conversation');
-    ('film');
+    ('conversation'),
+    ('film'),
+    ('other');
 
 CREATE TABLE
     IF NOT EXISTS source (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
         source_kind_id INTEGER NOT NULL,
+        author VARCHAR(50) NOT NULL,
+        lang VARCHAR(50) NOT NULL,
+        removed_lemmata_num INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT unique_title_kind_id UNIQUE (title, source_kind_id)
     );
 

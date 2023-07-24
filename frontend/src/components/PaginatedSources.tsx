@@ -1,15 +1,16 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
-import { Lemma } from "@/components/LemmaOverview";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
-export const fetcher: Fetcher<Lemma[]> = (url: RequestInfo | URL) =>
+import { Source } from "@/components/SourceOverview";
+import SourceKind from "@/components/SourceKind";
+
+const fetcher: Fetcher<Source[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
 
-function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
+function SourceSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
   const { data, error, isLoading } = useSWRImmutable(fetchQuery, fetcher);
-
   if (error) {
     console.log(JSON.stringify(error));
     return;
@@ -18,16 +19,30 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
     return;
   }
 
+  if (!data) {
+    return;
+  }
+
   return (
     <>
-      {data!.map((lemma: Lemma) => {
+      {data!.map((source: Source) => {
         return (
-          <tr key={lemma.id}>
-            <td>{lemma.id}</td>
+          <tr key={source.id}>
+            <td>{source.id}</td>
             <td>
-              <Link href={`/lemma/${lemma.id}`}>{lemma.lemma}</Link>
+              <Link href={`/source/${source.id}`}>{source.title}</Link>
             </td>
-            <td>{lemma.created}</td>
+            <td>
+              <Link href={`/sources?author=${source.author}`}>
+                {source.author}
+              </Link>
+            </td>
+            <td>
+              <SourceKind sourceKindId={source.source_kind_id} />
+            </td>
+            <td>
+              <Link href={`/sources?lang=${source.lang}`}>{source.lang}</Link>
+            </td>
           </tr>
         );
       })}
@@ -35,7 +50,7 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
   );
 }
 
-export default function PaginatedLemmata({
+export default function PaginatedSources({
   fetchQuery,
   page_size,
 }: {
@@ -61,18 +76,22 @@ export default function PaginatedLemmata({
         <thead>
           <tr>
             <th style={{ textAlign: "left" }}>id</th>
-            <th style={{ textAlign: "left" }}>lemma</th>
-            <th style={{ textAlign: "left" }}>created</th>
+            <th style={{ textAlign: "left" }}>title</th>
+            <th style={{ textAlign: "left" }}>author</th>
+            <th style={{ textAlign: "left" }}>category</th>
+            <th style={{ textAlign: "left" }}>language</th>
           </tr>
         </thead>
         <tbody id={"data-store"}>
           {[...Array(page).keys()].map((i) => {
             return (
-              <LemmaSetDisplayer
+              <SourceSetDisplayer
                 key={i}
-                fetchQuery={`${fetchQuery}&page=${
-                  i + 1
-                }&page_size=${page_size}`}
+                fetchQuery={
+                  fetchQuery.includes("?")
+                    ? `${fetchQuery}&page=${i + 1}&page_size=${page_size}`
+                    : `${fetchQuery}?page=${i + 1}&page_size=${page_size}`
+                }
               />
             );
           })}

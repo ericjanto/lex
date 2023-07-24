@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from pydantic import parse_obj_as
 from tabulate import tabulate
 
-from backend.dbtypes import (
+from ._dbtypes import (
     Context,
     ContextId,
     DbEnvironment,
@@ -57,19 +57,7 @@ class LexDbIntegrator:
             passwd=passwd,
             db=db,
             autocommit=True,
-            # ssl_mode=ssl_mode,
-            # ssl=ssl,
         )
-
-        # self.connection = MySQLdb.connect(
-        #     host=host,
-        #     user=user,
-        #     passwd=passwd,
-        #     db=db,
-        #     autocommit=True,
-        #     ssl_mode=ssl_mode,
-        #     ssl=ssl,
-        # )
 
     def close_connection(self):
         """
@@ -146,15 +134,18 @@ class LexDbIntegrator:
         Adds a new source to the database if it doesn't exist already.
         Returns -1 if aborted because of invalid source kind id.
         """
-        print("here")
         if not self.get_source_kind(source.source_kind_id):
             return SourceId(-1)
 
         cursor = self.connection.cursor()
         sql = (
-            "INSERT IGNORE INTO source (title, source_kind_id) VALUES (%s, %s)"
+            "INSERT IGNORE INTO source (title, source_kind_id, author, lang)"
+            " VALUES (%s, %s, %s, %s)"
         )
-        cursor.execute(sql, (source.title, source.source_kind_id))
+        cursor.execute(
+            sql,
+            (source.title, source.source_kind_id, source.author, source.lang),
+        )
         self.connection.commit()
         cursor.execute("SELECT LAST_INSERT_ID()")
         sid = SourceId(cursor.fetchall()[0][0])
@@ -178,6 +169,7 @@ class LexDbIntegrator:
         """
         Returns a Source object. Returns None if the source doesn't
         exist.
+
         """
         cursor = self.connection.cursor()
         sql = "SELECT * FROM source WHERE id = %s"
@@ -186,7 +178,14 @@ class LexDbIntegrator:
         source = (
             parse_obj_as(
                 Source,
-                {"id": res[0], "title": res[1], "source_kind_id": res[2]},
+                {
+                    "id": res[0],
+                    "title": res[1],
+                    "source_kind_id": res[2],
+                    "author": res[3],
+                    "lang": res[4],
+                    "removed_lemmata_num": res[5],
+                },
             )
             if (res := cursor.fetchone())
             else None
@@ -194,6 +193,52 @@ class LexDbIntegrator:
 
         cursor.close()
         return source
+
+    def get_paginated_sources(
+        self,
+        page: int,
+        page_size: int,
+        filter_params: Union[dict[str, Union[int, str]], None] = None,
+    ) -> list[Source]:
+        """
+        Returns a list of all sources within the pagination range.
+
+        filter_params is an optional filter parameter which is a dict of
+        {column_name: value} items.
+        """
+        cursor = self.connection.cursor()
+        sql = "SELECT * FROM source"
+        if filter_params:
+            for i, param in enumerate(filter_params.items() or []):
+                sql += " WHERE" if i == 0 else " AND"
+                sql += f" {param[0]} = %s"
+        sql += " ORDER BY id LIMIT %s OFFSET %s"
+
+        cursor.execute(
+            sql,
+            (
+                *list(filter_params.values() if filter_params else []),
+                page_size,
+                page_size * (page - 1),
+            ),
+        )
+
+        sources = [
+            parse_obj_as(
+                Source,
+                {
+                    "id": res[0],
+                    "title": res[1],
+                    "source_kind_id": res[2],
+                    "author": res[3],
+                    "lang": res[4],
+                    "removed_lemmata_num": res[5],
+                },
+            )
+            for res in cursor.fetchall()
+        ]
+        cursor.close()
+        return sources
 
     def add_status(self, status_val: StatusVal) -> StatusId:
         """
@@ -253,9 +298,17 @@ class LexDbIntegrator:
         if (lemma_id := self.get_lemma_id(lemma.lemma)) != -1:
             return lemma_id
 
+        if not self.get_source(lemma.found_in_source):
+            return LemmaId(-1)
+
         cursor = self.connection.cursor()
-        sql = "INSERT INTO lemma (lemma, status_id) VALUES (%s, %s)"
-        cursor.execute(sql, (lemma.lemma, lemma.status_id))
+        sql = (
+            "INSERT INTO lemma (lemma, status_id, found_in_source) VALUES (%s,"
+            " %s, %s)"
+        )
+        cursor.execute(
+            sql, (lemma.lemma, lemma.status_id, lemma.found_in_source)
+        )
         self.connection.commit()
         lemma_id = self.get_lemma_id(lemma.lemma)
         cursor.close()
@@ -266,7 +319,7 @@ class LexDbIntegrator:
         Returns a lemma. Returns None if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE id = %s"
+        sql = "SELECT * FROM lemma WHERE id = %s LIMIT 1"
         cursor.execute(sql, (lemma_id,))
 
         lemma = (
@@ -277,6 +330,7 @@ class LexDbIntegrator:
                     "lemma": res[1],
                     "created": res[2],
                     "status_id": res[3],
+                    "found_in_source": res[4],
                 },
             )
             if (res := (cursor.fetchall() or [[]])[0])
@@ -304,7 +358,13 @@ class LexDbIntegrator:
             cursor.execute(sql, (status_id,))
 
         return [
-            Lemma(id=row[0], lemma=row[1], created=row[2], status_id=row[3])
+            Lemma(
+                id=row[0],
+                lemma=row[1],
+                created=row[2],
+                status_id=row[3],
+                found_in_source=row[4],
+            )
             for row in cursor.fetchall()
         ]
 
@@ -335,27 +395,29 @@ class LexDbIntegrator:
         Returns the id of a lemma. Returns -1 if the lemma doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE lemma = %s"
+        sql = "SELECT id FROM lemma WHERE lemma = %s"
         cursor.execute(sql, (lemma_value,))
-        if lemma := (
-            parse_obj_as(
-                Lemma,
-                {
-                    "id": res[0],
-                    "lemma": res[1],
-                    "created": res[2],
-                    "status_id": res[3],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
-        ):
-            lemma_id = lemma.id
-        else:
-            lemma_id = LemmaId(-1)
+        # if lemma := (
+        #     parse_obj_as(
+        #         Lemma,
+        #         {
+        #             "id": res[0],
+        #             "lemma": res[1],
+        #             "created": res[2],
+        #             "status_id": res[3],
+        #         },
+        #     )
+        #     if ()
+        #     else None
+        # ):
+        lemma_id = (
+            LemmaId(res[0][0]) if (res := cursor.fetchall()) else LemmaId(-1)
+        )
+        # else:
+        # lemma_id = LemmaId(-1)
 
         cursor.close()
-        return LemmaId(lemma_id)
+        return lemma_id
 
     def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """
@@ -504,6 +566,33 @@ class LexDbIntegrator:
         cursor = self.connection.cursor()
         sql = "SELECT * FROM context ORDER BY id LIMIT %s OFFSET %s"
         cursor.execute(sql, (page_size, page_size * (page - 1)))
+        contexts = [
+            parse_obj_as(
+                Context,
+                {
+                    "id": res[0],
+                    "context_value": res[1],
+                    "created": res[2],
+                    "source_id": res[3],
+                },
+            )
+            for res in cursor.fetchall()
+        ]
+        cursor.close()
+        return contexts
+
+    def get_paginated_source_contexts(
+        self, source_id: SourceId, page: int, page_size: int
+    ) -> list[Context]:
+        """
+        Returns a list of contexts.
+        """
+        cursor = self.connection.cursor()
+        sql = (
+            "SELECT * FROM context WHERE source_id = %s ORDER BY id LIMIT %s"
+            " OFFSET %s"
+        )
+        cursor.execute(sql, (source_id, page_size, page_size * (page - 1)))
         contexts = [
             parse_obj_as(
                 Context,
@@ -806,7 +895,7 @@ class LexDbIntegrator:
         cursor.execute(sql, (lemma_id,))
         source_ids = {t[0] for t in cursor.fetchall() or []}
 
-        # delete all entries in lemmat_source with the lemma id:
+        # delete all entries in lemma_source with the lemma id:
         sql = "DELETE FROM lemma_source WHERE lemma_id = %s"
         cursor.execute(sql, (lemma_id,))
         self.connection.commit()
@@ -823,6 +912,21 @@ class LexDbIntegrator:
                     "DELETE FROM source WHERE id = %s", (source_id,)
                 )
                 self.connection.commit()
+
+        # get the found_in_value of the lemma:
+        cursor.execute(
+            "SELECT found_in_source FROM lemma WHERE id = %s LIMIT 1",
+            (lemma_id,),
+        )
+        found_in_source = cursor.fetchall()[0][0]
+
+        # increase the removed_lemmata_num of the source, if it still exists:
+        if source := self.get_source(found_in_source):
+            cursor.execute(
+                "UPDATE source SET removed_lemmata_num = %s WHERE id = %s",
+                (source.removed_lemmata_num + 1, found_in_source),
+            )
+            self.connection.commit()
 
         # get all context ids associated with the lemma from lemma_context:
         sql = "SELECT context_id FROM lemma_context WHERE lemma_id = %s"

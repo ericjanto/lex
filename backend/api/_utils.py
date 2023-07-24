@@ -22,5 +22,9 @@ def buf_count_newlines(path: Union[Path, str]) -> int:
 
 
 def relativy_path(path: str) -> str:
+    # TODO @ej I don't think this is working
     cwd = os.path.basename(os.getcwd())
-    return f"{'backend/' if cwd != 'backend' else ''}{path}"
+    if path == "_db.py":
+        return f"{'backend/api/' if cwd != 'backend/api' else ''}{path}"
+    else:
+        return f"{'backend/' if cwd != 'backend' else ''}{path}"

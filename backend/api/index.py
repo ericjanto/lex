@@ -73,7 +73,7 @@ class LemmaValue(BaseModel):
     value: str
 
 
-@app.get("/")
+@app.get("/status")
 async def read_root():
     return {"api_status": "working"}
 

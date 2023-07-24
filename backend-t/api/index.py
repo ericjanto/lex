@@ -8,6 +8,6 @@ async def hello_world():
     return {"messsage": "hello python"}
 
 
-# @app.get("/api/haskell")
-# async def hello_haskell():
-#     return {"messsage": "hello haskell"}
+@app.get("/haskell")
+async def hello_haskell():
+    return {"messsage": "hello haskell"}

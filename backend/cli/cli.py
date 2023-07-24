@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import typer
-from api.dbtypes import LemmaId
+from api._dbtypes import LemmaId
 from api.index import ApiEnvironment
 from rich import print as rprint
 

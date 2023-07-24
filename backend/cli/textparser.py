@@ -12,10 +12,10 @@ from typing import NamedTuple
 
 import en_core_web_trf
 import spacy
-from api.const import Const
-from api.dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api._const import Const
+from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api._utils import buf_count_newlines
 from api.index import ApiEnvironment, ApiRequestor
-from api.utils import buf_count_newlines
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant

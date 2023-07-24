@@ -2,8 +2,8 @@ import subprocess
 
 import pytest
 
-from backend.db import LexDbIntegrator
-from backend.dbtypes import (
+from ..api.db import LexDbIntegrator
+from ..api.dbtypes import (
     Context,
     ContextId,
     DbEnvironment,
@@ -20,7 +20,7 @@ from backend.dbtypes import (
     StatusVal,
     UposTag,
 )
-from backend.utils import relativy_path
+from ..api.utils import relativy_path
 
 
 @pytest.fixture

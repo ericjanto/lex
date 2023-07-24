@@ -3,11 +3,11 @@ from pathlib import Path
 import typer
 from rich import print as rprint
 
-from backend.api import ApiEnvironment
-from backend.contentextractor import ContentExtractor
-from backend.dbtypes import LemmaId
-from backend.textparser import TextParser
-from backend.vocabmanager import VocabManager
+from .api import ApiEnvironment
+from .contentextractor import ContentExtractor
+from .dbtypes import LemmaId
+from .textparser import TextParser
+from .vocabmanager import VocabManager
 
 cli = typer.Typer()
 global api_env

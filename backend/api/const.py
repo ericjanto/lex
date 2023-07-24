@@ -7,8 +7,8 @@ Constants collection place
 
 from dataclasses import dataclass
 
-from backend.dbtypes import UposTag
-from backend.utils import relativy_path
+from .dbtypes import UposTag
+from .utils import relativy_path
 
 
 @dataclass

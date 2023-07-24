@@ -6,10 +6,10 @@ Collection of functionality to show and modify the vocabulary.
 
 from typing import Union
 
-from backend.api import ApiEnvironment, ApiRequestor
-from backend.const import Const
-from backend.dbtypes import LemmaId, StatusVal
-from backend.textparser import TextParser
+from .api import ApiEnvironment, ApiRequestor
+from .const import Const
+from .dbtypes import LemmaId, StatusVal
+from .textparser import TextParser
 
 
 class VocabManager:

@@ -19,10 +19,10 @@ from spacy.lang.en.stop_words import (
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
 
-from backend.api import ApiEnvironment, ApiRequestor
-from backend.const import Const
-from backend.dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from backend.utils import buf_count_newlines
+from .api import ApiEnvironment, ApiRequestor
+from .const import Const
+from .dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from .utils import buf_count_newlines
 
 
 class IntermediaryDbDatum(NamedTuple):

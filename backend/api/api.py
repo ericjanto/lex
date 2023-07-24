@@ -14,9 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from rich import print as rprint
 
-from backend.const import Const
-from backend.db import LexDbIntegrator
-from backend.dbtypes import (
+from .const import Const
+from .db import LexDbIntegrator
+from .dbtypes import (
     Context,
     ContextId,
     DbEnvironment,
@@ -37,6 +37,13 @@ from backend.dbtypes import (
     UposTag,
 )
 
+# # Get the current directory (where api.py is located)
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# # Add the current directory to the Python path
+# sys.path.append(current_dir)
+
+
 origins = ["*"]
 app = FastAPI()
 app.add_middleware(
@@ -55,7 +62,7 @@ def set_db_env(env: DbEnvironment):
 
 
 if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.DEV)  # TODO @ej verify this before deploying
+    set_db_env(DbEnvironment.PROD)  # TODO @ej verify this before deploying
 else:
     set_db_env(DbEnvironment.DEV)
 

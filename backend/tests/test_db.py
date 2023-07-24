@@ -35,7 +35,7 @@ def db():
 db_changed = pytest.mark.skipif(
     condition=not bool(
         subprocess.run(
-            ["git", "diff", "--exit-code", relativy_path("db.py")]
+            ["git", "diff", "--exit-code", relativy_path("_db.py")]
         ).returncode
     ),
     reason="db.py has not changed",

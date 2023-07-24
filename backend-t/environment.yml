@@ -1,0 +1,10 @@
+name: lex-backend
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - -r requirements-dev.txt
+    - jupyterlab
+    - ipykernel

@@ -55,7 +55,7 @@ def set_db_env(env: DbEnvironment):
 
 
 if os.environ.get("VERCEL"):
-    set_db_env(DbEnvironment.PROD)
+    set_db_env(DbEnvironment.DEV)
 else:
     set_db_env(DbEnvironment.DEV)
 

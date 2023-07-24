@@ -1,11 +1,12 @@
 import os
+from typing import TypedDict, Union
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rich import print as rprint
 
 from ._const import Const
-from ._db import LexDbIntegrator
+from ._db import Lemma, LemmaId, LexDbIntegrator
 from ._dbtypes import DbEnvironment
 
 origins = ["*"]
@@ -29,6 +30,15 @@ if os.environ.get("VERCEL"):
     set_db_env(DbEnvironment.PROD)
 else:
     set_db_env(DbEnvironment.DEV)
+
+
+class EmptyDict(TypedDict, total=False):
+    pass
+
+
+@app.get("/lemma/{lemma_id}")
+async def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
+    return db.get_lemma(lemma_id) or EmptyDict()
 
 
 @app.get("/api/python")

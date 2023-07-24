@@ -6,9 +6,9 @@ BASE_VOCAB_PATH ?= backend/assets/reference-vocabulary/vocabulary.base.txt
 
 
 apidev:
-	uvicorn backend.api:app --reload
+	uvicorn backend.api.api:app --reload
 apiprod:
-	gunicorn --workers 9 --timeout 120 -k uvicorn.workers.UvicornWorker backend.api:app
+	gunicorn --workers 9 --timeout 120 -k uvicorn.workers.UvicornWorker backend.api.api:app
 apidocs:
 	open http://127.0.0.1:8000/docs
 apischema:

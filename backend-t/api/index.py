@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from .otherfile import hi
+
 app = FastAPI()
 
 
@@ -11,3 +13,8 @@ async def hello_world():
 @app.get("/haskell")
 async def hello_haskell():
     return {"messsage": "hello haskell"}
+
+
+@app.get("/relative")
+async def relative_import():
+    return {"messsage": hi()}

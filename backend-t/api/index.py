@@ -1,6 +1,12 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 from ._const import Const
+
+
+class T(BaseModel):
+    pass
+
 
 app = FastAPI()
 

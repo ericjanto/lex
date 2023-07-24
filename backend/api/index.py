@@ -54,8 +54,8 @@ def set_db_env(env: DbEnvironment):
     db = LexDbIntegrator(env)
 
 
-if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.PROD)  # TODO @ej verify this before deploying
+if os.environ.get("VERCEL"):
+    set_db_env(DbEnvironment.PROD)
 else:
     set_db_env(DbEnvironment.DEV)
 

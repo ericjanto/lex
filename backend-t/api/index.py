@@ -1,7 +1,12 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from rich import print as rprint
 
 from ._const import Const
+from ._db import LexDbIntegrator
+from ._dbtypes import DbEnvironment
 
 origins = ["*"]
 app = FastAPI()
@@ -12,6 +17,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def set_db_env(env: DbEnvironment):
+    global db
+    rprint(f"[green]Connecting to {env.value} database branch.")
+    db = LexDbIntegrator(env)
+
+
+if os.environ.get("VERCEL"):
+    set_db_env(DbEnvironment.PROD)
+else:
+    set_db_env(DbEnvironment.DEV)
 
 
 @app.get("/api/python")

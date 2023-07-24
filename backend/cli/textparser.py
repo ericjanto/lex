@@ -15,13 +15,15 @@ import spacy
 from api._const import Const
 from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
 from api._utils import buf_count_newlines
-from api.index import ApiEnvironment, ApiRequestor
+from api.index import ApiEnvironment
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant
 )
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
+
+from .apirequestor import ApiRequestor
 
 
 class IntermediaryDbDatum(NamedTuple):

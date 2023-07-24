@@ -8,8 +8,9 @@ from typing import Union
 
 from api._const import Const
 from api._dbtypes import LemmaId, StatusVal
-from api.index import ApiEnvironment, ApiRequestor
+from api.index import ApiEnvironment
 
+from .apirequestor import ApiRequestor
 from .textparser import TextParser
 
 

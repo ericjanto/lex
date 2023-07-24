@@ -1,25 +1,10 @@
-"""
-API
-===
-Exposes endpoints to interact with the database.
-"""
-
-import os
-from enum import Enum
-from typing import TypedDict, Union
+from typing import Union
 
 import requests
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from rich import print as rprint
-
-from backend.const import Const
-from backend.db import LexDbIntegrator
-from backend.dbtypes import (
+from api._const import Const
+from api._dbtypes import (
     Context,
     ContextId,
-    DbEnvironment,
     Lemma,
     LemmaContextId,
     LemmaContextRelation,
@@ -30,154 +15,11 @@ from backend.dbtypes import (
     SourceId,
     SourceKindId,
     SourceKindVal,
-    Status,
     StatusId,
     StatusVal,
     UposTag,
 )
-
-origins = ["*"]
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-def set_db_env(env: DbEnvironment):
-    global db
-    rprint(f"[green]Connecting to {env.value} database branch.")
-    db = LexDbIntegrator(env)
-
-
-if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
-    set_db_env(DbEnvironment.PROD)
-else:
-    set_db_env(DbEnvironment.DEV)
-
-
-class ApiEnvironment(str, Enum):
-    PROD = "PROD"
-    DEV = "DEV"
-
-
-class EmptyDict(TypedDict, total=False):
-    pass
-
-
-class LemmaValue(BaseModel):
-    value: str
-
-
-@app.get("/")
-async def read_root():
-    return {"api_status": "working"}
-
-
-@app.get("/lemma/{lemma_id}")
-async def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
-    return db.get_lemma(lemma_id) or EmptyDict()
-
-
-@app.get("/lemma_id")
-async def get_lemma_id(lemma: LemmaValue) -> LemmaId:
-    return db.get_lemma_id(lemma.value)
-
-
-@app.get("/lemma_status/{status_val}")
-async def get_status_id(status_val: StatusVal) -> StatusId:
-    return db.get_status_id(status_val)
-
-
-@app.get("/lemma_status_by_id/{status_id}")
-async def get_status_by_id(status_id: StatusId) -> Union[Status, None]:
-    return db.get_status_by_id(status_id)
-
-
-@app.get("/status_lemmata")
-async def get_status_lemma_rows(
-    status_val: StatusVal,
-    page: Union[int, None],
-    page_size: Union[int, None] = None,
-) -> list[Lemma]:
-    return db.get_status_lemma_rows(
-        status_val=status_val, page=page, page_size=page_size
-    )
-
-
-@app.get("/status_lemmata_table")
-async def get_status_lemma_rows_table(
-    status_val: StatusVal,
-    page: Union[int, None],
-    page_size: Union[int, None] = None,
-) -> str:
-    return db.get_status_lemma_rows_table(
-        status_val=status_val, page=page, page_size=page_size
-    )
-
-
-@app.get("/contexts")
-async def get_paginated_contexts(page: int, page_size: int) -> list[Context]:
-    return db.get_paginated_contexts(page, page_size)
-
-
-@app.get("/lemma_contexts/{lemma_id}")
-async def get_lemma_contexts(
-    lemma_id: LemmaId, page: int, page_size: int
-) -> list[Context]:
-    return db.get_lemma_contexts(lemma_id, page, page_size)
-
-
-@app.post("/lemma")
-async def post_lemma(lemma: Lemma) -> LemmaId:
-    return db.add_lemma(lemma)
-
-
-@app.post("/lemma_status")
-async def post_status(status_val: StatusVal) -> StatusId:
-    return db.add_status(status_val)
-
-
-@app.post("/lemma_source")
-async def post_lemma_source_relation(
-    lemma_source_relation: LemmaSourceRelation,
-) -> LemmaSourceId:
-    return db.add_lemma_source_relation(lemma_source_relation)
-
-
-@app.post("/source_kind")
-async def post_source_kind(source_kind_val: SourceKindVal) -> SourceKindId:
-    return db.add_source_kind(source_kind_val)
-
-
-@app.post("/source")
-async def post_source(source: Source) -> SourceId:
-    return db.add_source(source)
-
-
-@app.post("/context")
-async def post_context(context: Context) -> ContextId:
-    return db.add_context(context)
-
-
-@app.post("/lemma_context")
-async def post_lemma_context_relation(
-    lemma_context_relation: LemmaContextRelation,
-) -> LemmaContextId:
-    return db.add_lemma_context_relation(lemma_context_relation)
-
-
-@app.delete("/lemma")
-async def delete_lemma(lemma_ids: list[LemmaId]):
-    return all(db.delete_lemma(lid) for lid in lemma_ids)
-
-
-@app.patch("/status")
-async def update_status(lemma_ids: list[LemmaId], new_status_id: StatusId):
-    return db.update_lemmata_status(lemma_ids, new_status_id)
+from api.index import ApiEnvironment, LemmaValue
 
 
 class ApiRequestor:
@@ -231,10 +73,14 @@ class ApiRequestor:
         assert r.status_code == 200
         return r.json()
 
-    def post_lemma(self, lemma: str, status_id: StatusId) -> LemmaId:
+    def post_lemma(
+        self, lemma: str, status_id: StatusId, source_id: SourceId
+    ) -> LemmaId:
         r = requests.post(
             f"{self.api_url}/lemma",
-            json=Lemma(lemma=lemma, status_id=status_id).to_dict(),
+            json=Lemma(
+                lemma=lemma, status_id=status_id, found_in_source=source_id
+            ).to_dict(),
         )
         assert r.status_code == 200
         assert (lid := LemmaId(r.json())) != -1
@@ -257,11 +103,16 @@ class ApiRequestor:
         return skid
 
     def post_source(
-        self, title: str, source_kind_id: SourceKindId
+        self, title: str, source_kind_id: SourceKindId, author: str, lang: str
     ) -> SourceId:
         r = requests.post(
             f"{self.api_url}/source",
-            json=Source(title=title, source_kind_id=source_kind_id).to_dict(),
+            json=Source(
+                title=title,
+                source_kind_id=source_kind_id,
+                author=author,
+                lang=lang,
+            ).to_dict(),
         )
         assert r.status_code == 200
         assert (sid := SourceId(r.json())) != -1

@@ -1,12 +1,14 @@
 .PHONY: apidev apiprod apidocs apischema dbdev dbprod dbdevadd setup setupvalidate testall testlf
+.DEFAULT_GOAL := apiprod
 
-PYTHON=python3
-BASE_VOCAB_PATH=backend/assets/reference-vocabulary/vocabulary.base.txt
+PYTHON ?= python3
+BASE_VOCAB_PATH ?= backend/assets/reference-vocabulary/vocabulary.base.txt
+
 
 apidev:
-	uvicorn backend.api:app --reload
+	uvicorn backend.api.index:app --reload
 apiprod:
-	gunicorn --workers 9 --timeout 120 -k uvicorn.workers.UvicornWorker backend.api:app
+	gunicorn --workers 9 --timeout 120 -k uvicorn.workers.UvicornWorker backend.api.index:app
 apidocs:
 	open http://127.0.0.1:8000/docs
 apischema:
@@ -19,7 +21,9 @@ dbdevadd:
 	cp $(BASE_VOCAB_PATH) t.txt
 	rm $(BASE_VOCAB_PATH)
 	touch $(BASE_VOCAB_PATH)
-	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-1.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-2.txt)
+	(cd backend; $(PYTHON) cli.py add assets/dev-samples/harry-potter-small-3.txt)
 	cp t.txt $(BASE_VOCAB_PATH)
 	rm t.txt
 bsetup:

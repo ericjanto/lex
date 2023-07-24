@@ -2,6 +2,7 @@ import useSWRImmutable, { Fetcher } from "swr";
 
 import { StatusVal } from "@/app/status/[statusVal]/page";
 import { API_BASE_URL } from "@/lib/const";
+import Link from "next/link";
 
 type Status = {
   id: number;
@@ -30,8 +31,13 @@ export default function Status({ statusId }: { statusId: number }) {
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
   return (
-    <span style={{ color: functionalColour(data!.status) }}>
-      {data!.status}
+    <span>
+      <Link
+        href={`/status/${data!.status}`}
+        style={{ color: functionalColour(data!.status) }}
+      >
+        {data!.status}
+      </Link>
     </span>
   );
 }

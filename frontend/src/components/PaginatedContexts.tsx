@@ -1,14 +1,7 @@
 import useSWRImmutable, { Fetcher } from "swr";
 
-import { deserialiseContextValue } from "@/lib/utils";
-import { useState } from "react";
-
-type Context = {
-  id: number;
-  context_value: string;
-  created: string;
-  source_id: number;
-};
+import { Context } from "@/components/Context";
+import { useEffect, useState } from "react";
 
 const fetcher: Fetcher<Context[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
@@ -23,8 +16,7 @@ function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
       {data!.map((context: Context) => {
         return (
           <span key={context.id} id={String(context.id)}>
-            <span style={{ color: "#919191" }}>{" § "}</span>
-            <span>{deserialiseContextValue(context.context_value)}</span>
+            <Context key={context.id} context={context} />
           </span>
         );
       })}
@@ -40,6 +32,21 @@ export default function PaginatedContexts({
   page_size: number;
 }) {
   const [page, setPage] = useState(1);
+  const [allLoaded, setAllLoaded] = useState(false);
+
+  useEffect(() => {
+    const spans = document.getElementsByTagName("span");
+    const contextSpans = Array.from(spans).filter((span) => {
+      return span.innerText.includes(" § ");
+    });
+
+    if (contextSpans.length < (page - 1) * page_size) {
+      setAllLoaded(true);
+    } else {
+      setAllLoaded(false);
+    }
+  }, [page, page_size]);
+
   return (
     <>
       {[...Array(page).keys()].map((i) => {
@@ -51,7 +58,10 @@ export default function PaginatedContexts({
         );
       })}
       <br />
-      <button onClick={() => setPage(page + 1)}>Load more</button>
+      {!allLoaded && (
+        <button onClick={() => setPage(page + 1)}>Load more</button>
+      )}
+      {allLoaded && <div>All data returned. ₍ᐢ. ̫.ᐢ₎</div>}
     </>
   );
 }

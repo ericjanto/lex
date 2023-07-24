@@ -12,6 +12,10 @@ from typing import NamedTuple
 
 import en_core_web_trf
 import spacy
+from api._const import Const
+from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api._utils import buf_count_newlines
+from api.index import ApiEnvironment
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant
@@ -19,10 +23,7 @@ from spacy.lang.en.stop_words import (
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
 
-from backend.api import ApiEnvironment, ApiRequestor
-from backend.const import Const
-from backend.dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from backend.utils import buf_count_newlines
+from .apirequestor import ApiRequestor
 
 
 class IntermediaryDbDatum(NamedTuple):
@@ -117,7 +118,10 @@ class TextParser:
 
         source_kind_id = self.api.post_source_kind(source_metadata.source_kind)
         source_id = self.api.post_source(
-            title=source_metadata.title, source_kind_id=source_kind_id
+            title=source_metadata.title,
+            source_kind_id=source_kind_id,
+            author=source_metadata.author,
+            lang=source_metadata.language,
         )
         status_id_staged = self.api.post_status(StatusVal.STAGED)
 
@@ -159,7 +163,9 @@ class TextParser:
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),
-                        self.api.post_lemma(lemma, status_id_staged),
+                        self.api.post_lemma(
+                            lemma, status_id_staged, source_id
+                        ),
                         t.tag_,
                         UposTag(t.pos_),
                     )

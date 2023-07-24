@@ -1,5 +1,5 @@
 """
-TODO
+Typing class for the database integration.
 """
 from datetime import datetime
 from enum import Enum
@@ -35,6 +35,7 @@ class SourceKindVal(Enum):
     ARTICLE = "article"
     CONVERSATION = "conversation"
     FILM = "film"
+    OTHER = "other"
 
 
 class UposTag(Enum):
@@ -92,6 +93,9 @@ class Source(ConfiguredBaseModel):
     id: SourceId = SourceId(-1)
     title: str
     source_kind_id: SourceKindId
+    author: str
+    lang: str
+    removed_lemmata_num: int = 0
 
 
 class SourceMetadata(ConfiguredBaseModel):
@@ -111,6 +115,7 @@ class Lemma(ConfiguredBaseModel):
     lemma: str
     created: datetime = datetime(1970, 1, 1)
     status_id: StatusId
+    found_in_source: SourceId
 
 
 class LemmaSourceRelation(ConfiguredBaseModel):

@@ -33,7 +33,7 @@ from ._dbtypes import (
     StatusVal,
 )
 
-origins = ["*"]
+origins = ["*.ericjanto.com", "ericjanto.com"]
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,

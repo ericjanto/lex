@@ -34,10 +34,8 @@ from ._dbtypes import (
 )
 
 origins = [
-    "http://ericjanto.com",
-    "https://ericjanto.com",
-    "http://*.ericjanto.com",
-    "https://*.ericjanto.com",
+    "ericjanto.com",
+    "lex.ericjanto.com",
 ]
 
 app = FastAPI()

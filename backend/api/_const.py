@@ -13,7 +13,7 @@ from ._utils import relativy_path
 
 @dataclass
 class Const:
-    API_DEV_URL = "http://127.0.0.1:8000"
+    API_LOCAL_URL = "http://127.0.0.1:8000"
 
     PATH_BASE_VOCAB = relativy_path(
         "assets/reference-vocabulary/vocabulary.base.txt"

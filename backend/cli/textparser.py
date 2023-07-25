@@ -12,16 +12,16 @@ from typing import NamedTuple
 
 import en_core_web_trf
 import spacy
-from api._const import Const
-from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from api._utils import buf_count_newlines
-from api.index import ApiEnvironment
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant
 )
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
+
+from api._const import Const
+from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api._utils import buf_count_newlines
 
 from .apirequestor import ApiRequestor
 
@@ -38,7 +38,7 @@ class TextParser:
     Parsing class which extracts vocabulary from text.
     """
 
-    def __init__(self, api_env: ApiEnvironment) -> None:
+    def __init__(self) -> None:
         """
         TODO
 
@@ -47,7 +47,7 @@ class TextParser:
           this allows us to reuse the same instance for parsing of
           multiple documents
         """
-        self.api = ApiRequestor(api_env)
+        self.api = ApiRequestor()
 
         self.nlp = en_core_web_trf.load()  # TODO @ej localisation-relevant
         self._customise_tokenisation()
@@ -125,6 +125,7 @@ class TextParser:
         )
         status_id_staged = self.api.post_status(StatusVal.STAGED)
 
+        self._normalise_file(content_path)
         content_line_num = buf_count_newlines(content_path)
 
         with self.nlp_parsing_pipes, open(content_path) as f, Progress() as p:
@@ -134,7 +135,6 @@ class TextParser:
 
             raw_context = " "
             while raw_context:
-                # if raw_context != " ":
                 p.advance(task, Const.CONTEXT_LINE_NUM)
 
                 raw_context = " ".join(
@@ -241,9 +241,51 @@ class TextParser:
 
         return json.dumps(context_value)
 
+    @staticmethod
+    def _normalise_file(path: str):
+        wrapped_lines = []
+        min_length = 60
+        max_length = 80
+        with open(path) as f:
+            borrowed = ""
+            for i, line in enumerate(f):
+                bline = f"{borrowed} {line.rstrip()}".lstrip()
+
+                if len(bline) == 0 and i != 0:
+                    continue
+
+                if len(bline) < min_length:
+                    borrowed = bline
+                    continue
+
+                if len(bline) <= max_length:
+                    wrapped_lines.append(f"{bline}\n")
+                    borrowed = ""
+                    continue
+
+                break_point = bline.rfind(" ", 0, max_length - 1)
+                if break_point == -1:
+                    break_point = max_length
+                wrapped_lines.append(f"{bline[:break_point]}\n")
+                borrowed = bline[break_point:].lstrip()
+
+            while borrowed:
+                if len(borrowed) <= max_length:
+                    wrapped_lines.append(f"{borrowed}\n")
+                    borrowed = ""
+                else:
+                    break_point = borrowed.rfind(" ", 0, max_length - 1)
+                    if break_point == -1:
+                        break_point = max_length
+                    wrapped_lines.append(f"{borrowed[:break_point]}\n")
+                    borrowed = borrowed[break_point:].lstrip()
+
+        with open(path, "w") as f:
+            f.writelines(wrapped_lines)
+
 
 if __name__ == "__main__":
-    tp = TextParser(ApiEnvironment.DEV)
+    tp = TextParser()
     tp.parse_into_db(
         "assets/dev-samples/harry-potter.content.txt",
         "assets/dev-samples/harry-potter.meta.json",

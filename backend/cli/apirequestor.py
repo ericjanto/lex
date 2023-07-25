@@ -1,6 +1,7 @@
 from typing import Union
 
 import requests
+
 from api._const import Const
 from api._dbtypes import (
     Context,
@@ -19,7 +20,7 @@ from api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from api.index import ApiEnvironment, LemmaValue
+from api.index import LemmaValue
 
 
 class ApiRequestor:
@@ -27,15 +28,12 @@ class ApiRequestor:
     Encapsulation class for sending HTTP requests to the api.
     """
 
-    def __init__(self, api_env: ApiEnvironment) -> None:
+    def __init__(self) -> None:
         """
         Args:
             env: api environment (dev or prod) to interact with
         """
-        if api_env == ApiEnvironment.DEV:
-            self.api_url = Const.API_DEV_URL
-        else:
-            raise NotImplementedError
+        self.api_url = Const.API_LOCAL_URL
 
     def get_lemma_name(self, lemma_id: LemmaId) -> str:
         r = requests.get(f"{self.api_url}/lemma/{lemma_id}")

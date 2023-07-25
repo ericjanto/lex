@@ -8,7 +8,6 @@ from typing import Union
 
 from api._const import Const
 from api._dbtypes import LemmaId, StatusVal
-from api.index import ApiEnvironment
 
 from .apirequestor import ApiRequestor
 from .textparser import TextParser
@@ -17,9 +16,9 @@ from .textparser import TextParser
 class VocabManager:
     """ """
 
-    def __init__(self, api_env: ApiEnvironment) -> None:
+    def __init__(self) -> None:
         """ """
-        self.api = ApiRequestor(api_env)
+        self.api = ApiRequestor()
 
     def transfer_lemma_to_irrelevant_vocab(self, lemma: str) -> bool:
         lemma_id = self.api.get_lemma_id(lemma)

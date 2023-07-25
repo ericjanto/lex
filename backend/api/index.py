@@ -5,7 +5,6 @@ Exposes endpoints to interact with the database.
 """
 
 import os
-from enum import Enum
 from typing import TypedDict, Union
 
 from fastapi import FastAPI
@@ -47,7 +46,7 @@ app.add_middleware(
 
 def set_db_env(env: DbEnvironment):
     global db
-    rprint(f"[green]Connecting to {env.value} database branch.")
+    rprint(f"[green]Connected to {env.value} database branch.")
     db = LexDbIntegrator(env)
 
 
@@ -55,11 +54,6 @@ if os.environ.get("VERCEL"):
     set_db_env(DbEnvironment.PROD)
 else:
     set_db_env(DbEnvironment.DEV)
-
-
-class ApiEnvironment(str, Enum):
-    PROD = "PROD"
-    DEV = "DEV"
 
 
 class EmptyDict(TypedDict, total=False):

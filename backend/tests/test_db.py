@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 import pytest
@@ -20,7 +21,6 @@ from ..api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from ..api._utils import relativy_path
 
 
 @pytest.fixture
@@ -35,10 +35,10 @@ def db():
 db_changed = pytest.mark.skipif(
     condition=not bool(
         subprocess.run(
-            ["git", "diff", "--exit-code", relativy_path("_db.py")]
+            ["git", "diff", "--exit-code", os.path.abspath("_db.py")]
         ).returncode
     ),
-    reason="db.py has not changed",
+    reason="_db.py has not changed",
 )
 
 
@@ -967,7 +967,7 @@ class TestExpensiveDbMethods:
                 lang="en",
             )
         )
-        context_id_delete = db.add_context(
+        context_id_remain_too = db.add_context(
             Context(context_value="context", source_id=source_id_delete)
         )
         context_id_remain = db.add_context(
@@ -996,7 +996,7 @@ class TestExpensiveDbMethods:
         db.add_lemma_context_relation(
             LemmaContextRelation(
                 lemma_id=lemma_id_delete,
-                context_id=context_id_delete,
+                context_id=context_id_remain_too,
                 upos_tag=UposTag.NOUN,
                 detailed_tag="NNP",
             )
@@ -1024,6 +1024,7 @@ class TestExpensiveDbMethods:
             == 0
         )
         assert (cr := db.get_context(context_id_remain)) is not None
+        assert db.get_context(context_id_remain_too) is not None
         assert str(lemma_id_delete) not in cr.context_value
         assert str(lemma_id_remain) in cr.context_value
         assert db.get_lemma(lemma_id_delete) is None

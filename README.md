@@ -10,7 +10,7 @@ make setup
 - cd backend
 - mypy .
 - mypy --install-types
-- pre-commit install
+- pre-commit install --hook-type pre-commit
 - make bsetupvalidate
 - env file
 

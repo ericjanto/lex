@@ -2,9 +2,16 @@
 Collection of utility methods
 """
 
-import os
+import subprocess
 from pathlib import Path
 from typing import Union
+
+from rich.progress import (
+    BarColumn,
+    TaskProgressColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 
 def buf_count_newlines(path: Union[Path, str]) -> int:
@@ -21,10 +28,26 @@ def buf_count_newlines(path: Union[Path, str]) -> int:
     return count
 
 
-def relativy_path(path: str) -> str:
-    # TODO @ej I don't think this is working
-    cwd = os.path.basename(os.getcwd())
-    if path == "_db.py":
-        return f"{'backend/api/' if cwd != 'backend/api' else ''}{path}"
-    else:
-        return f"{'backend/' if cwd != 'backend' else ''}{path}"
+def get_git_root() -> str:
+    # E.g. '/Users/ericjanto/Developer/Projects/lex'
+    command = ["git", "rev-parse", "--show-toplevel"]
+    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+    return result.stdout.strip()
+
+
+def absolutify_path_from_root(path_from_root: str) -> str:
+    # e.g. /backend/api/_db.py
+    #   => /Users/ericjanto/Developer/Projects/lex/backend/api/_db.py
+    return f"{get_git_root() + path_from_root}"
+
+
+def enhanced_progress_params():
+    return (
+        "[progress.description]{task.description}",
+        BarColumn(),
+        TaskProgressColumn(),
+        "Elapsed:",
+        TimeElapsedColumn(),
+        "Remaining:",
+        TimeRemainingColumn(),
+    )

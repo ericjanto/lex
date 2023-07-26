@@ -21,7 +21,7 @@ from spacy.tokens import Doc, Token
 
 from api._const import Const
 from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from api._utils import buf_count_newlines
+from api._utils import buf_count_newlines, enhanced_progress_params
 
 from .apirequestor import ApiRequestor
 
@@ -70,7 +70,9 @@ class TextParser:
 
         content_line_num = buf_count_newlines(content_path)
 
-        with self.nlp_parsing_pipes, open(content_path) as f, Progress() as p:
+        with self.nlp_parsing_pipes, open(content_path) as f, Progress(
+            *enhanced_progress_params()
+        ) as p:
             task = p.add_task(
                 "[yellow]Parsing into base vocabulary", total=content_line_num
             )
@@ -110,6 +112,7 @@ class TextParser:
         TODO
         """
         existing_base_vocab = self._load_vocab(Const.PATH_BASE_VOCAB)
+        print(existing_base_vocab)
         existing_irrelevant_vocab = self._load_vocab(
             Const.PATH_IRRELEVANT_VOCAB
         )
@@ -128,7 +131,9 @@ class TextParser:
         self._normalise_file(content_path)
         content_line_num = buf_count_newlines(content_path)
 
-        with self.nlp_parsing_pipes, open(content_path) as f, Progress() as p:
+        with self.nlp_parsing_pipes, open(content_path) as f, Progress(
+            *enhanced_progress_params()
+        ) as p:
             task = p.add_task(
                 "[yellow]Parsing into database", total=content_line_num
             )

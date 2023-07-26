@@ -1,4 +1,3 @@
-import os
 import subprocess
 
 import pytest
@@ -21,6 +20,7 @@ from ..api._dbtypes import (
     StatusVal,
     UposTag,
 )
+from ..api._utils import absolutify_path_from_root
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def db():
 db_changed = pytest.mark.skipif(
     condition=not bool(
         subprocess.run(
-            ["git", "diff", "--exit-code", os.path.abspath("_db.py")]
+            ["git", "diff", "--exit-code", absolutify_path_from_root("_db.py")]
         ).returncode
     ),
     reason="_db.py has not changed",

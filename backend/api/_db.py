@@ -103,7 +103,7 @@ class LexDbIntegrator:
         Returns the id of a source kind. Returns -1 if the kind doesn't exist.
         """
         cursor = self.connection.cursor()
-        sql = "SELECT * FROM source_kind WHERE kind = %s"
+        sql = "SELECT * FROM source_kind WHERE kindd = %s"
         cursor.execute(sql, (source_kind.value,))
         source_kind_id = res[0] if (res := cursor.fetchone()) else -1
         cursor.close()

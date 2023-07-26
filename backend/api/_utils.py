@@ -35,10 +35,11 @@ def get_git_root() -> str:
     return result.stdout.strip()
 
 
-def absolutify_path_from_root(path_from_root: str) -> str:
+def absolutify_path_from_root(path_relative_from_root: str) -> str:
+    # NOTE: get_git_root() does not have trailing slash
     # e.g. /backend/api/_db.py
     #   => /Users/ericjanto/Developer/Projects/lex/backend/api/_db.py
-    return f"{get_git_root() + path_from_root}"
+    return f"{get_git_root()}{path_relative_from_root}"
 
 
 def enhanced_progress_params():

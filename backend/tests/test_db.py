@@ -35,7 +35,13 @@ def db():
 db_changed = pytest.mark.skipif(
     condition=not bool(
         subprocess.run(
-            ["git", "diff", "--exit-code", absolutify_path_from_root("_db.py")]
+            [
+                "git",
+                "diff",
+                "--cached",
+                "--exit-code",
+                absolutify_path_from_root("/backend/api/_db.py"),
+            ]
         ).returncode
     ),
     reason="_db.py has not changed",

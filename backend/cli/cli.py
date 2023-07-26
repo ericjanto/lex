@@ -1,9 +1,11 @@
+import cProfile
 from pathlib import Path
 
 import typer
 from rich import print as rprint
 
 from api._dbtypes import LemmaId
+from api._utils import absolutify_path_from_root
 
 from .contentextractor import ContentExtractor
 from .textparser import TextParser
@@ -13,12 +15,11 @@ cli = typer.Typer()
 
 
 @cli.command("add")
-def add(
-    path: Path,
-    bv: bool = False,
-):
+def add(path: Path, bv: bool = False, profile: bool = False):
+    # sourcery skip: merge-else-if-into-elif
     """
     Parse a new file into the database or base vocabulary (--bv).
+    Produce an `add.profile` file (--profile).
     """
     if not path.is_file():
         raise typer.BadParameter("path")
@@ -29,9 +30,31 @@ def add(
     parser = TextParser()
 
     if bv:
-        parser.parse_into_base_vocab(content_path)
+        (
+            cProfile.runctx(
+                "parser.parse_into_base_vocab(content_path)",
+                locals=locals(),
+                globals=globals(),
+                filename=absolutify_path_from_root(
+                    "/uncommitted/dbparse.profile"
+                ),
+            )
+            if profile
+            else parser.parse_into_base_vocab(content_path)
+        )
     else:
-        parser.parse_into_db(content_path, meta_path)
+        (
+            cProfile.runctx(
+                "parser.parse_into_db(content_path, meta_path)",
+                locals=locals(),
+                globals=globals(),
+                filename=absolutify_path_from_root(
+                    "/uncommitted/dbparse.profile"
+                ),
+            )
+            if profile
+            else parser.parse_into_db(content_path, meta_path)
+        )
 
     extractor.clean()
 

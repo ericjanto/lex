@@ -112,7 +112,6 @@ class TextParser:
         TODO
         """
         existing_base_vocab = self._load_vocab(Const.PATH_BASE_VOCAB)
-        print(existing_base_vocab)
         existing_irrelevant_vocab = self._load_vocab(
             Const.PATH_IRRELEVANT_VOCAB
         )
@@ -162,8 +161,11 @@ class TextParser:
                     )
                 )
 
-                if not doc_filtered:
-                    continue
+                # Below lines allow for docs without any lemmata to
+                # be added to the db
+
+                # if not doc_filtered:
+                # continue
 
                 db_data = {
                     t.text: IntermediaryDbDatum(
@@ -177,6 +179,8 @@ class TextParser:
                     for t in doc_filtered
                 }
 
+                # TODO: test – why not try and use _db.py directly. Would be
+                #       fine for cli I guess
                 context_value = self._construct_context_value(
                     doc_complete, db_data
                 )

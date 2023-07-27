@@ -10,6 +10,7 @@ from api._dbtypes import (
     LemmaContextId,
     LemmaContextRelation,
     LemmaId,
+    LemmaList,
     LemmaSourceId,
     LemmaSourceRelation,
     Source,
@@ -83,6 +84,23 @@ class ApiRequestor:
         assert r.status_code == 200
         assert (lid := LemmaId(r.json())) != -1
         return lid
+
+    def bulk_post_lemmata(
+        self, lemmata_values: list[LemmaValue], source_id: SourceId
+    ) -> list[tuple[LemmaId, LemmaValue]]:
+        r = requests.post(
+            f"{self.api_url}/bulk_lemmata",
+            json=LemmaList(
+                lemmata=[
+                    Lemma(lemma=lemma_val, source_id=source_id)
+                    for lemma_val in lemmata_values
+                ]
+            ),
+        )
+        assert r.status_code == 200
+        tups: list[tuple[LemmaId, LemmaValue]] = r.json()
+        assert lemmata_values == [lemma_val for _, lemma_val in tups]
+        return tups
 
     def post_status(self, status_val: StatusVal) -> StatusId:
         r = requests.post(

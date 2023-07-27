@@ -5,6 +5,7 @@ Programmatic interface for interacting with the lex database.
 """
 import os
 import re
+from collections import Counter, defaultdict
 from typing import Any, Union
 
 import mysql.connector
@@ -312,6 +313,52 @@ class LexDbIntegrator:
         cursor.close()
         return lemma_id
 
+    def bulk_add_lemma(
+        self,
+        lemmata_values: list[str],
+        status_id: StatusId,
+        found_in_source: SourceId,
+    ) -> list[tuple[LemmaId, str]]:
+        """ """
+        if not self.get_status_by_id(status_id):
+            return False
+
+        if not self.get_source(found_in_source):
+            return False
+
+        already_in_db = [
+            lemma for _, lemma in self.bulk_get_id_lemma_tups(lemmata_values)
+        ]
+
+        to_push = list(
+            filter(
+                lambda lemma_val: lemma_val not in already_in_db,
+                lemmata_values,
+            )
+        )
+
+        if not to_push:
+            return False
+
+        sql = (
+            "INSERT INTO lemma (lemma, status_id, found_in_source) VALUES (%s,"
+            " %s, %s)"
+        )
+
+        query_data = [
+            (lemma_val, status_id, found_in_source) for lemma_val in to_push
+        ]
+
+        cursor = self.connection.cursor()
+        cursor.executemany(sql, query_data)
+        self.connection.commit()
+
+        tups = self.bulk_get_id_lemma_tups(lemmata_values)
+
+        cursor.close()
+
+        return tups
+
     def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
         """
         Returns a lemma. Returns None if the lemma doesn't exist.
@@ -336,6 +383,28 @@ class LexDbIntegrator:
         )
         cursor.close()
         return lemma
+
+    def bulk_get_lemmata(self, lemma_ids: list[LemmaId]) -> list[Lemma]:
+        lemma_ids = list(set(lemma_ids))
+        cursor = self.connection.cursor()
+        sql = (
+            "SELECT * FROM lemma WHERE id IN ("
+            + ",".join(["%s"] * len(lemma_ids))
+            + ")"
+        )
+        cursor.execute(sql, lemma_ids)
+        lemmata = [
+            Lemma(
+                id=row[0],
+                lemma=row[1],
+                created=row[2],
+                status_id=row[3],
+                found_in_source=row[4],
+            )
+            for row in cursor.fetchall() or []
+        ]
+        cursor.close()
+        return lemmata
 
     def get_status_lemma_rows(
         self,
@@ -395,27 +464,28 @@ class LexDbIntegrator:
         cursor = self.connection.cursor()
         sql = "SELECT id FROM lemma WHERE lemma = %s"
         cursor.execute(sql, (lemma_value,))
-        # if lemma := (
-        #     parse_obj_as(
-        #         Lemma,
-        #         {
-        #             "id": res[0],
-        #             "lemma": res[1],
-        #             "created": res[2],
-        #             "status_id": res[3],
-        #         },
-        #     )
-        #     if ()
-        #     else None
-        # ):
         lemma_id = (
             LemmaId(res[0][0]) if (res := cursor.fetchall()) else LemmaId(-1)
         )
-        # else:
-        # lemma_id = LemmaId(-1)
 
         cursor.close()
         return lemma_id
+
+    def bulk_get_id_lemma_tups(
+        self, lemmata_values: list[str]
+    ) -> list[tuple[LemmaId, str]]:
+        cursor = self.connection.cursor()
+        sql = (
+            "SELECT id, lemma FROM lemma WHERE lemma IN ("
+            + ",".join(["%s"] * len(lemmata_values))
+            + ")"
+        )
+        cursor.execute(sql, lemmata_values)
+        lid_lemma_tups = [
+            (LemmaId(res[0]), res[1]) for res in cursor.fetchall() or []
+        ]
+        cursor.close()
+        return lid_lemma_tups
 
     def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """
@@ -428,7 +498,7 @@ class LexDbIntegrator:
 
     def add_lemma_source_relation(
         self, lemma_source_relation: LemmaSourceRelation
-    ) -> LemmaSourceId:
+    ) -> bool:
         """
         Adds a new lemma-source relation to the database.
         """
@@ -436,7 +506,7 @@ class LexDbIntegrator:
         if not self.get_lemma(
             lemma_source_relation.lemma_id
         ) or not self.get_source(lemma_source_relation.source_id):
-            return LemmaSourceId(-1)
+            return False
 
         cursor = self.connection.cursor()
         sql = "INSERT INTO lemma_source (lemma_id, source_id) VALUES (%s, %s)"
@@ -445,10 +515,25 @@ class LexDbIntegrator:
             (lemma_source_relation.lemma_id, lemma_source_relation.source_id),
         )
         self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        lemma_source_id = LemmaSourceId(cursor.fetchall()[0][0])
         cursor.close()
-        return lemma_source_id
+        return True
+
+    def bulk_add_lemma_source_relations(
+        self, lemma_ids: list[LemmaId], source_id: SourceId
+    ) -> bool:
+        if not self.get_source(source_id):
+            return False
+
+        if not self._all_lemmata_exist(lemma_ids):
+            return False
+
+        query_data = [(lid, source_id) for lid in lemma_ids]
+        cursor = self.connection.cursor()
+        sql = "INSERT INTO lemma_source (lemma_id, source_id) VALUES (%s, %s)"
+        cursor.executemany(sql, query_data)
+        self.connection.commit()
+        cursor.close()
+        return True
 
     def get_lemma_sources(self, lemma_id: LemmaId) -> list[Source]:
         """
@@ -558,6 +643,30 @@ class LexDbIntegrator:
         )
         cursor.close()
         return context
+
+    def bulk_get_contexts(self, cids: list[ContextId]) -> list[Context]:
+        cids = list(set(cids))
+        sql = (
+            "SELECT * FROM context WHERE id IN ("
+            + ",".join(["%s"] * len(cids))
+            + ")"
+        )
+        cursor = self.connection.cursor()
+        cursor.execute(sql, cids)
+        contexts = [
+            parse_obj_as(
+                Context,
+                {
+                    "id": res[0],
+                    "context_value": res[1],
+                    "created": res[2],
+                    "source_id": res[3],
+                },
+            )
+            for res in cursor.fetchall() or []
+        ]
+        cursor.close()
+        return contexts
 
     def get_paginated_contexts(
         self, page: int, page_size: int
@@ -669,6 +778,34 @@ class LexDbIntegrator:
         lcid = LemmaContextId(cursor.fetchall()[0][0])
         cursor.close()
         return lcid
+
+    def bulk_add_lemma_context_relations(
+        self, rels: list[LemmaContextRelation]
+    ) -> bool:
+        """ """
+        if not self._all_lemmata_exist([rel.lemma_id for rel in rels]):
+            return False
+
+        if not self._all_contexts_exist([rel.context_id for rel in rels]):
+            return False
+
+        keys_to_exclude = {"id"}
+        query_data = []
+        for rel in rels:
+            d = rel.dict(exclude=keys_to_exclude)
+            d.update({"upos_tag": rel.upos_tag.value})
+            query_data.append(list(d.values()))
+
+        sql = (
+            "INSERT INTO lemma_context (lemma_id, context_id, upos_tag,"
+            " detailed_tag) VALUES (%s, %s, %s, %s)"
+        )
+
+        cursor = self.connection.cursor()
+        cursor.executemany(sql, query_data)
+        self.connection.commit()
+        cursor.close()
+        return True
 
     def get_lemma_context_relation(
         self, lemma_context_id: LemmaContextId
@@ -984,6 +1121,91 @@ class LexDbIntegrator:
 
         cursor.close()
         return not self.get_lemma(lemma_id)
+
+    def bulk_delete_lemmata(self, lemma_ids: set[LemmaId]) -> bool:
+        """
+        TODO: @ej test this spaghetti code
+        """
+        lemma_ids = list(lemma_ids)
+        if not self._all_lemmata_exist(lemma_ids):
+            return False
+
+        cursor = self.connection.cursor()
+        lemma_id_placeholders = "(" + ",".join(["%s"] * len(lemma_ids)) + ")"
+        sql_lemma_source = (
+            "DELETE FROM lemma_source WHERE lemma_id IN"
+            f" {lemma_id_placeholders}"
+        )
+        cursor.execute(sql_lemma_source, lemma_ids)
+        self.connection.commit()
+
+        sql_found_in_source = (
+            "SELECT found_in_source FROM lemma WHERE id IN"
+            f" {lemma_id_placeholders}"
+        )
+
+        cursor.execute(sql_found_in_source, lemma_ids)
+        found_in_source_ids = [SourceId(res[0]) for res in cursor.fetchall()]
+
+        counter = Counter(found_in_source_ids)
+        source_ids_by_occurences = defaultdict(list)
+        for source_id, occurences in counter.items():
+            source_ids_by_occurences[occurences].append(source_id)
+
+        for (
+            occurences,
+            source_ids_of_count,
+        ) in source_ids_by_occurences.items():
+            sql_source = (
+                "UPDATE source SET removed_lemmata_num = removed_lemmata_num +"
+                " %s WHERE id IN ("
+                + ",".join(["%s"] * len(source_ids_of_count))
+                + ")"
+            )
+            cursor.execute(sql_source, (occurences, source_ids_of_count))
+            self.connection.commit()
+
+        sql_context_ids = (
+            "SELECT context_id FROM lemma_context WHERE lemma_id IN"
+            f" {lemma_id_placeholders}"
+        )
+        cursor.execute(sql_context_ids, lemma_ids)
+        context_ids = list({ContextId(res[0]) for res in cursor.fetchall()})
+        sql_lemma_context = (
+            "DELETE FROM lemma_context WHERE lemma_id IN"
+            f" {lemma_id_placeholders}"
+        )
+        cursor.execute(sql_lemma_context, lemma_ids)
+        self.connection.commit()
+
+        # For all contexts in context_ids, update the context_value using
+        # a regex replacement to remove the lemma_ids, similar to:
+        # re.sub(
+        #    rf"(::{lemma_id})(\D)", r"\g<2>", context_value
+        # )
+        # This can be performed using mysql 8.0 regex_replace function:
+        sql_replace_lids = (
+            "UPDATE context SET context_value = REGEXP_REPLACE("
+            "context_value, %s, %s) WHERE id IN ("
+            + ",".join(["%s"] * len(context_ids))
+            + ")"
+        )
+        print(sql_replace_lids)
+
+        # to test this manually: insert a lemma source with title
+        # "test::1 replacing::1-various::1 ids." as json serialised thing
+        # replacing should be testing with regex...
+        # TODO
+        # SELECT REGEXP_REPLACE('stackoverflow','(.{5})(.*)','$2$1');
+        # https://stackoverflow.com/questions/7058209/how-do-i-refer-to-capture-groups-in-a-mysql-regex
+
+    def _all_lemmata_exist(self, lemma_ids: list[LemmaId]) -> bool:
+        lemmata = self.bulk_get_lemmata(lemma_ids)
+        return {lemma.id for lemma in lemmata} == set(lemma_ids)
+
+    def _all_contexts_exist(self, cids: list[ContextId]) -> bool:
+        contexts = self.bulk_get_contexts(cids)
+        return {context.id for context in contexts} == set(cids)
 
 
 if __name__ == "__main__":

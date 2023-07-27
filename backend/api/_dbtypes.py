@@ -118,6 +118,10 @@ class Lemma(ConfiguredBaseModel):
     found_in_source: SourceId
 
 
+class LemmaList(ConfiguredBaseModel):
+    lemmata: list[Lemma]
+
+
 class LemmaSourceRelation(ConfiguredBaseModel):
     id: LemmaSourceId = LemmaSourceId(-1)
     lemma_id: LemmaId

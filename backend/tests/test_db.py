@@ -412,13 +412,8 @@ class TestExpensiveDbMethods:
         assert db.get_lemma(lemma_id) is not None
 
     def test_add_lemma_source_invalid_ids(self, db: LexDbIntegrator):
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(
-                    lemma_id=LemmaId(-1), source_id=SourceId(-1)
-                )
-            )
-            == -1
+        assert not db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=LemmaId(-1), source_id=SourceId(-1))
         )
 
     def test_add_lemma_source_valid_ids(self, db: LexDbIntegrator):
@@ -481,17 +476,11 @@ class TestExpensiveDbMethods:
                 lang="en",
             )
         )
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
-            )
-            == 1
+        assert db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
         )
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
-            )
-            == 2
+        assert db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
         )
 
     def test_get_lemma_source_ids_invalid_ids(self, db: LexDbIntegrator):

@@ -161,11 +161,16 @@ class TextParser:
                     )
                 )
 
-                # Below lines allow for docs without any lemmata to
+                # Below lines don't allow for docs without any lemmata to
                 # be added to the db
+                #   if not doc_filtered:
+                #     continue
 
-                # if not doc_filtered:
-                # continue
+                # TODO -- 1
+                # 1. Return the ids from bulk_add_lemmata [DONE]
+                # 2. Verify with Postman that the API endpoint is working as
+                #    expected [CONTINUE HERE]
+                # 3. Post all lemmata and construct db_data using returned tups
 
                 db_data = {
                     t.text: IntermediaryDbDatum(
@@ -179,13 +184,14 @@ class TextParser:
                     for t in doc_filtered
                 }
 
-                # TODO: test – why not try and use _db.py directly. Would be
-                #       fine for cli I guess
                 context_value = self._construct_context_value(
                     doc_complete, db_data
                 )
                 context_id = self.api.post_context(context_value, source_id)
 
+                # TODO -- 2
+                # 1. Create lemma_source_rels and lemma_context_rels in lists
+                # 2. Bulk add the lists
                 for datum in db_data.values():
                     self.api.post_lemma_source_relation(
                         datum.lemma_id, source_id

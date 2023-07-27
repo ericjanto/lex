@@ -21,6 +21,7 @@ from ._dbtypes import (
     LemmaContextId,
     LemmaContextRelation,
     LemmaId,
+    LemmaList,
     LemmaSourceId,
     LemmaSourceRelation,
     Source,
@@ -164,6 +165,20 @@ async def get_source_contexts(
 @app.post("/lemma")
 async def post_lemma(lemma: Lemma) -> LemmaId:
     return db.add_lemma(lemma)
+
+
+@app.post("/bulk_lemmata")
+async def post_bulk_lemmata(
+    lemma_list: LemmaList,
+) -> list[tuple[LemmaId, LemmaValue]]:
+    lemmata = lemma_list.lemmata
+    status_id = lemmata[0].status_id
+    found_in_source = lemmata[0].found_in_source
+    return db.bulk_add_lemma(
+        [lemma.lemma for lemma in lemmata],
+        status_id=status_id,
+        found_in_source=found_in_source,
+    )
 
 
 @app.post("/lemma_status")

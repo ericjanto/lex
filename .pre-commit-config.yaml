@@ -43,5 +43,5 @@ repos:
     rev: 3.5.3
     hooks:
       - id: commitizen
-      - id: commitizen-branch
+        pass_filenames: false
         stages: [push]

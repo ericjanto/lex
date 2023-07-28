@@ -1,7 +1,9 @@
+default_stages: [commit]
 repos:
   - repo: local
     hooks:
       - id: pytest
+        stages: [commit]
         name: pytest
         entry: pytest
         language: system
@@ -15,6 +17,7 @@ repos:
         always_run: true
   - hooks:
       - id: end-of-file-fixer
+        stages: [commit, manual]
     repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
   - hooks:
@@ -22,18 +25,23 @@ repos:
           - --fix
           - --exit-non-zero-on-fix
         id: ruff
+        stages: [commit, manual]
     repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.275
+    rev: v0.0.280
   - hooks:
       - id: isort
+        stages: [commit, manual]
         name: isort (python)
     repo: https://github.com/pycqa/isort
     rev: 5.12.0
   - hooks:
       - id: black
+        stages: [commit, manual]
     repo: https://github.com/psf/black
-    rev: 22.10.0
-  - hooks:
+    rev: 23.7.0
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: 3.5.3
+    hooks:
       - id: commitizen
-    repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.5.2
+      - id: commitizen-branch
+        stages: [push]

@@ -52,3 +52,7 @@ bsetupvalidate:
 .PHONY: fdev
 fdev:
 	(cd frontend; pnpm run dev)
+
+.PHONY: pre
+pre:
+	pre-commit run -a --hook-stage manual

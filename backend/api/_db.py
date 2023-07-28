@@ -318,7 +318,7 @@ class LexDbIntegrator:
         lemmata_values: list[str],
         status_id: StatusId,
         found_in_source: SourceId,
-    ) -> list[tuple[LemmaId, str]]:
+    ) -> dict[str, LemmaId]:
         """ """
         if not self.get_status_by_id(status_id):
             return False
@@ -326,9 +326,7 @@ class LexDbIntegrator:
         if not self.get_source(found_in_source):
             return False
 
-        already_in_db = [
-            lemma for _, lemma in self.bulk_get_id_lemma_tups(lemmata_values)
-        ]
+        already_in_db = self.bulk_get_lemma_to_id_dict(lemmata_values).keys()
 
         to_push = list(
             filter(
@@ -353,11 +351,11 @@ class LexDbIntegrator:
         cursor.executemany(sql, query_data)
         self.connection.commit()
 
-        tups = self.bulk_get_id_lemma_tups(lemmata_values)
+        lemma_id_dict = self.bulk_get_lemma_to_id_dict(lemmata_values)
 
         cursor.close()
 
-        return tups
+        return lemma_id_dict
 
     def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
         """
@@ -471,9 +469,9 @@ class LexDbIntegrator:
         cursor.close()
         return lemma_id
 
-    def bulk_get_id_lemma_tups(
+    def bulk_get_lemma_to_id_dict(
         self, lemmata_values: list[str]
-    ) -> list[tuple[LemmaId, str]]:
+    ) -> dict[str, LemmaId]:
         cursor = self.connection.cursor()
         sql = (
             "SELECT id, lemma FROM lemma WHERE lemma IN ("
@@ -481,11 +479,11 @@ class LexDbIntegrator:
             + ")"
         )
         cursor.execute(sql, lemmata_values)
-        lid_lemma_tups = [
-            (LemmaId(res[0]), res[1]) for res in cursor.fetchall() or []
-        ]
+        lemma_val_id_dict = {
+            res[1]: LemmaId(res[0]) for res in cursor.fetchall() or []
+        }
         cursor.close()
-        return lid_lemma_tups
+        return lemma_val_id_dict
 
     def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """

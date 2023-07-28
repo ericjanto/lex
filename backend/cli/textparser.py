@@ -172,6 +172,11 @@ class TextParser:
                 #    expected [CONTINUE HERE]
                 # 3. Post all lemmata and construct db_data using returned tups
 
+                # Issue: tups not returned in order. Ids don't represent
+                # order (lemma might already be existent).
+                # Solution: return a {lemma: id} dict instead to allow for O(1)
+                # look-up time.
+
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),

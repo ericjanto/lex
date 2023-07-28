@@ -2,8 +2,8 @@ from typing import Union
 
 import requests
 
-from api._const import Const
-from api._dbtypes import (
+from ..api._const import Const
+from ..api._dbtypes import (
     Context,
     ContextId,
     Lemma,
@@ -21,19 +21,17 @@ from api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from api.index import LemmaValue
+from ..api.index import LemmaValue
 
 
 class ApiRequestor:
     """
     Encapsulation class for sending HTTP requests to the api.
+
+    Connects with local API.
     """
 
     def __init__(self) -> None:
-        """
-        Args:
-            env: api environment (dev or prod) to interact with
-        """
         self.api_url = Const.API_LOCAL_URL
 
     def get_lemma_name(self, lemma_id: LemmaId) -> str:
@@ -86,21 +84,42 @@ class ApiRequestor:
         return lid
 
     def bulk_post_lemmata(
-        self, lemmata_values: list[LemmaValue], source_id: SourceId
-    ) -> list[tuple[LemmaId, LemmaValue]]:
-        r = requests.post(
-            f"{self.api_url}/bulk_lemmata",
-            json=LemmaList(
+        self,
+        lemmata_values: list[LemmaValue],
+        status_id: StatusId,
+        source_id: SourceId,
+    ) -> dict[LemmaValue, LemmaId]:
+        print(
+            LemmaList(
                 lemmata=[
-                    Lemma(lemma=lemma_val, source_id=source_id)
+                    Lemma(
+                        lemma=lemma_val,
+                        status_id=status_id,
+                        found_in_source=source_id,
+                    )
                     for lemma_val in lemmata_values
                 ]
-            ),
+            ).to_dict()
+        )
+        r = requests.post(
+            f"{self.api_url}/bulk_lemmata",
+            json={
+                LemmaList(
+                    lemmata=[
+                        Lemma(
+                            lemma=lemma_val,
+                            status_id=status_id,
+                            found_in_source=source_id,
+                        )
+                        for lemma_val in lemmata_values
+                    ]
+                ).to_dict(),
+            },
         )
         assert r.status_code == 200
-        tups: list[tuple[LemmaId, LemmaValue]] = r.json()
-        assert lemmata_values == [lemma_val for _, lemma_val in tups]
-        return tups
+        id_lemma_dict: dict[LemmaValue, LemmaId] = r.json()
+        assert set(lemmata_values) == id_lemma_dict.keys()
+        return id_lemma_dict
 
     def post_status(self, status_val: StatusVal) -> StatusId:
         r = requests.post(

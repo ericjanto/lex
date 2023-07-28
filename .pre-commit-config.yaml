@@ -15,6 +15,13 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [commit]
+      - id: commitizen
+        name: commitizen
+        entry: cz check --rev-range main...HEAD
+        language: system
+        pass_filenames: false
+        stages: [commit, push]
   - hooks:
       - id: end-of-file-fixer
         stages: [commit, manual]
@@ -27,7 +34,7 @@ repos:
         id: ruff
         stages: [commit, manual]
     repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.280
+    rev: v0.0.275
   - hooks:
       - id: isort
         stages: [commit, manual]
@@ -38,10 +45,4 @@ repos:
       - id: black
         stages: [commit, manual]
     repo: https://github.com/psf/black
-    rev: 23.7.0
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: 3.5.3
-    hooks:
-      - id: commitizen
-        pass_filenames: false
-        stages: [commit, push]
+    rev: 22.10.0

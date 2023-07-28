@@ -23,7 +23,7 @@ class Const:
         "/backend/assets/reference-vocabulary/vocabulary.irrelevant.txt"
     )
 
-    CONTEXT_LINE_NUM = 5
+    CONTEXT_LINE_NUM = 10
 
     UPOS_RELEVANT = [
         UposTag.NOUN.value,

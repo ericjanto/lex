@@ -20,7 +20,14 @@ from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
 
 from api._const import Const
-from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
+from api._dbtypes import (
+    LemmaContextRelation,
+    LemmaId,
+    LemmaSourceRelation,
+    SourceMetadata,
+    StatusVal,
+    UposTag,
+)
 from api._utils import buf_count_newlines, enhanced_progress_params
 
 from .apirequestor import ApiRequestor
@@ -161,28 +168,28 @@ class TextParser:
                     )
                 )
 
-                # Below lines don't allow for docs without any lemmata to
-                # be added to the db
-                #   if not doc_filtered:
-                #     continue
+                if not doc_filtered:
+                    context_value = self._construct_context_value(
+                        doc_complete, {}
+                    )
+                    self.api.post_context(context_value, source_id)
+                    continue
 
-                # TODO -- 1
-                # 1. Return the ids from bulk_add_lemmata [DONE]
-                # 2. Verify with Postman that the API endpoint is working as
-                #    expected [CONTINUE HERE]
-                # 3. Post all lemmata and construct db_data using returned tups
+                # TODO: I think spacy lowers lemma text by default
+                lemmata_values = [t.lemma_.lower() for t in doc_filtered]
 
-                # Issue: tups not returned in order. Ids don't represent
-                # order (lemma might already be existent).
-                # Solution: return a {lemma: id} dict instead to allow for O(1)
-                # look-up time.
+                self.api.bulk_post_lemmata(
+                    lemmata_values=lemmata_values,
+                    status_id=status_id_staged,
+                    source_id=source_id,
+                )
+
+                lemma_id_dict = self.api.bulk_get_lemma_id_dict(lemmata_values)
 
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),
-                        self.api.post_lemma(
-                            lemma, status_id_staged, source_id
-                        ),
+                        lemma_id_dict[lemma],
                         t.tag_,
                         UposTag(t.pos_),
                     )
@@ -197,13 +204,26 @@ class TextParser:
                 # TODO -- 2
                 # 1. Create lemma_source_rels and lemma_context_rels in lists
                 # 2. Bulk add the lists
+
+                source_rels = []
+                context_rels = []
                 for datum in db_data.values():
-                    self.api.post_lemma_source_relation(
-                        datum.lemma_id, source_id
+                    source_rels.append(
+                        LemmaSourceRelation(
+                            lemma_id=datum.lemma_id, source_id=source_id
+                        )
                     )
-                    self.api.post_lemma_context_relation(
-                        datum.lemma_id, context_id, datum.pos, datum.tag
+                    context_rels.append(
+                        LemmaContextRelation(
+                            lemma_id=datum.lemma_id,
+                            context_id=context_id,
+                            upos_tag=datum.pos,
+                            detailed_tag=datum.tag,
+                        )
                     )
+
+                self.api.bulk_post_lemma_source_relations(source_rels)
+                self.api.bulk_post_lemma_context_relations(context_rels)
 
     def _customise_tokenisation(self):
         prefixes = self.nlp.Defaults.prefixes + [r"""^-+"""]  # type: ignore

@@ -184,13 +184,11 @@ async def post_bulk_lemmata(
 
     status_id = lemmata[0].status_id
     found_in_source = lemmata[0].found_in_source
-    res = db.bulk_add_lemma(
+    return db.bulk_add_lemma(
         [lemma.lemma for lemma in lemmata],
         status_id=status_id,
         found_in_source=found_in_source,
     )
-    print(res)
-    return res
 
 
 @app.post("/lemma_status")

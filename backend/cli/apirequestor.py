@@ -2,8 +2,8 @@ from typing import Union
 
 import requests
 
-from ..api._const import Const
-from ..api._dbtypes import (
+from api._const import Const
+from api._dbtypes import (
     Context,
     ContextId,
     Lemma,
@@ -21,7 +21,7 @@ from ..api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from ..api.index import LemmaValue
+from api.index import LemmaValue
 
 
 class ApiRequestor:

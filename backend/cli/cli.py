@@ -36,7 +36,7 @@ def add(path: Path, bv: bool = False, profile: bool = False):
                 locals=locals(),
                 globals=globals(),
                 filename=absolutify_path_from_root(
-                    "/uncommitted/dbparse.profile"
+                    "/uncommitted/dbparse-bv.profile"
                 ),
             )
             if profile
@@ -49,7 +49,7 @@ def add(path: Path, bv: bool = False, profile: bool = False):
                 locals=locals(),
                 globals=globals(),
                 filename=absolutify_path_from_root(
-                    "/uncommitted/dbparse-6.profile"
+                    "/uncommitted/dbparse-7.profile"
                 ),
             )
             if profile

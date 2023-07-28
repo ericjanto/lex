@@ -136,7 +136,6 @@ class TextParser:
 
         self._normalise_file(content_path)
         content_line_num = buf_count_newlines(content_path)
-
         with self.nlp_parsing_pipes, open(content_path) as f, Progress(
             *enhanced_progress_params()
         ) as p:
@@ -144,6 +143,8 @@ class TextParser:
                 "[yellow]Parsing into database", total=content_line_num
             )
 
+            # TODO: [perf] further batch requests (e.g. 1000 lemmata at a time,
+            #              not in every batch loop)
             raw_context = " "
             while raw_context:
                 p.advance(task, Const.CONTEXT_LINE_NUM)
@@ -200,10 +201,6 @@ class TextParser:
                     doc_complete, db_data
                 )
                 context_id = self.api.post_context(context_value, source_id)
-
-                # TODO -- 2
-                # 1. Create lemma_source_rels and lemma_context_rels in lists
-                # 2. Bulk add the lists
 
                 source_rels = []
                 context_rels = []

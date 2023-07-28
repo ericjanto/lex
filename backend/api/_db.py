@@ -321,12 +321,12 @@ class LexDbIntegrator:
     ) -> dict[str, LemmaId]:
         """ """
         if not self.get_status_by_id(status_id):
-            return False
+            return {}
 
         if not self.get_source(found_in_source):
-            return False
+            return {}
 
-        already_in_db = self.bulk_get_lemma_to_id_dict(lemmata_values).keys()
+        already_in_db = self.bulk_get_lemma_id_dict(lemmata_values).keys()
 
         to_push = list(
             filter(
@@ -336,11 +336,11 @@ class LexDbIntegrator:
         )
 
         if not to_push:
-            return False
+            return self.bulk_get_lemma_id_dict(lemmata_values)
 
         sql = (
-            "INSERT INTO lemma (lemma, status_id, found_in_source) VALUES (%s,"
-            " %s, %s)"
+            "INSERT IGNORE INTO lemma (lemma, status_id, found_in_source)"
+            " VALUES (%s, %s, %s)"
         )
 
         query_data = [
@@ -351,7 +351,7 @@ class LexDbIntegrator:
         cursor.executemany(sql, query_data)
         self.connection.commit()
 
-        lemma_id_dict = self.bulk_get_lemma_to_id_dict(lemmata_values)
+        lemma_id_dict = self.bulk_get_lemma_id_dict(lemmata_values)
 
         cursor.close()
 
@@ -469,7 +469,7 @@ class LexDbIntegrator:
         cursor.close()
         return lemma_id
 
-    def bulk_get_lemma_to_id_dict(
+    def bulk_get_lemma_id_dict(
         self, lemmata_values: list[str]
     ) -> dict[str, LemmaId]:
         cursor = self.connection.cursor()
@@ -517,12 +517,17 @@ class LexDbIntegrator:
         return True
 
     def bulk_add_lemma_source_relations(
-        self, lemma_ids: list[LemmaId], source_id: SourceId
+        self, rels: list[LemmaSourceRelation]
     ) -> bool:
-        if not self.get_source(source_id):
+        if not rels:
             return False
 
-        if not self._all_lemmata_exist(lemma_ids):
+        if not self.get_source(source_id := rels[0].source_id):
+            return False
+
+        if not self._all_lemmata_exist(
+            lemma_ids := [rel.lemma_id for rel in rels]
+        ):
             return False
 
         query_data = [(lid, source_id) for lid in lemma_ids]

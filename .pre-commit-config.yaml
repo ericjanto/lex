@@ -44,4 +44,4 @@ repos:
     hooks:
       - id: commitizen
         pass_filenames: false
-        stages: [push]
+        stages: [commit, push]

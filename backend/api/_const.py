@@ -23,6 +23,7 @@ class Const:
         "/backend/assets/reference-vocabulary/vocabulary.irrelevant.txt"
     )
 
+    SPILL_LINE_NUM = 3
     CONTEXT_LINE_NUM = 10
 
     UPOS_RELEVANT = [

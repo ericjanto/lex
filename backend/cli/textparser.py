@@ -145,18 +145,52 @@ class TextParser:
 
             # TODO: [perf] further batch requests (e.g. 1000 lemmata at a time,
             #              not in every batch loop)
-            raw_context = " "
-            while raw_context:
+            raw_context = []
+            pre_spill = []
+            post_spill = []
+            while True:
                 p.advance(task, Const.CONTEXT_LINE_NUM)
 
-                raw_context = " ".join(
-                    [
+                if not post_spill:
+                    raw_context = [
                         line.strip()
                         for line in islice(f, Const.CONTEXT_LINE_NUM)
                     ]
+                else:
+                    raw_context = post_spill + [
+                        line.strip()
+                        for line in islice(
+                            f, Const.CONTEXT_LINE_NUM - Const.SPILL_LINE_NUM
+                        )
+                    ]
+
+                if not raw_context:
+                    break
+
+                post_spill = [
+                    line.strip() for line in islice(f, Const.SPILL_LINE_NUM)
+                ]
+
+                spilled_context = " ".join(
+                    pre_spill + raw_context + post_spill
                 )
 
-                doc_complete = self.nlp(raw_context)
+                doc_spilled = self.nlp(spilled_context)
+
+                # TODO: only tokenise, don't use all the other pipes
+                pre_spill_len = len(self.nlp(" ".join(pre_spill)))
+                post_spill_len = len(self.nlp(" ".join(post_spill)))
+
+                if raw_context and len(raw_context) >= Const.SPILL_LINE_NUM:
+                    pre_spill = [raw_context[-Const.SPILL_LINE_NUM]]
+                elif raw_context:
+                    pre_spill = raw_context
+                else:
+                    pre_spill = []
+
+                doc_context = doc_spilled[
+                    pre_spill_len : len(doc_spilled) - post_spill_len
+                ]
 
                 doc_filtered = list(
                     filter(
@@ -165,13 +199,13 @@ class TextParser:
                             existing_base_vocab,
                             existing_irrelevant_vocab,
                         ),
-                        doc_complete,
+                        doc_context,
                     )
                 )
 
                 if not doc_filtered:
                     context_value = self._construct_context_value(
-                        doc_complete, {}
+                        doc_context, {}
                     )
                     self.api.post_context(context_value, source_id)
                     continue
@@ -198,7 +232,7 @@ class TextParser:
                 }
 
                 context_value = self._construct_context_value(
-                    doc_complete, db_data
+                    doc_context, db_data
                 )
                 context_id = self.api.post_context(context_value, source_id)
 

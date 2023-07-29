@@ -8,7 +8,13 @@ export type Context = {
   source_id: number;
 };
 
-export function Context({ context }: { context: Context }) {
+export function Context({
+  context,
+  highlightedLemmaId,
+}: {
+  context: Context;
+  highlightedLemmaId?: number;
+}) {
   const [hovered, setHovered] = useState(false);
   const contextValueObj = JSON.parse(context.context_value);
   const contextValueArr = Object.values(contextValueObj) as string[];
@@ -17,12 +23,21 @@ export function Context({ context }: { context: Context }) {
       let [word, id] = value.split("::");
       let space = "";
       if (id.endsWith(" ")) {
-        id.trimEnd();
+        id = id.trimEnd();
         space += " ";
       }
       return (
         <>
-          <Link href={`/lemma/${id}`}>{word}</Link>
+          <Link
+            href={`/lemma/${id}`}
+            style={
+              parseInt(id) == highlightedLemmaId
+                ? { backgroundColor: "yellow" }
+                : {}
+            }
+          >
+            {word}
+          </Link>
           {space}
         </>
       );

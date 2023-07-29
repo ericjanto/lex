@@ -847,8 +847,8 @@ class LexDbIntegrator:
         offset = (page - 1) * page_size
 
         sql = (
-            "SELECT * FROM lemma_context WHERE lemma_id = %s LIMIT %s"
-            " OFFSET %s"
+            "SELECT * FROM lemma_context WHERE lemma_id = %s ORDER BY"
+            " context_id LIMIT %s OFFSET %s"
         )
         cursor.execute(
             sql,
@@ -859,19 +859,24 @@ class LexDbIntegrator:
             ),
         )
 
-        context_ids = {
-            parse_obj_as(
-                LemmaContextRelation,
-                {
-                    "id": res[0],
-                    "lemma_id": res[1],
-                    "context_id": res[2],
-                    "upos_tag": res[3],
-                    "detailed_tag": res[4],
-                },
-            ).context_id
-            for res in cursor.fetchall()
-        }
+        context_ids = sorted(
+            {
+                parse_obj_as(
+                    LemmaContextRelation,
+                    {
+                        "id": res[0],
+                        "lemma_id": res[1],
+                        "context_id": res[2],
+                        "upos_tag": res[3],
+                        "detailed_tag": res[4],
+                    },
+                ).context_id
+                for res in cursor.fetchall()
+            }
+        )
+
+        # TODO bulk retrieve contexts
+        # TODO or just join the tables
         return [
             context
             for context in (

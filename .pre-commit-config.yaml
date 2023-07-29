@@ -1,27 +1,6 @@
+fail_fast: true
 default_stages: [commit]
 repos:
-  - repo: local
-    hooks:
-      - id: pytest
-        stages: [commit]
-        name: pytest
-        entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: mypy
-        name: mypy
-        entry: cd backend && mypy .
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [commit]
-      - id: commitizen
-        name: commitizen
-        entry: cz check --rev-range main...HEAD
-        language: system
-        pass_filenames: false
-        stages: [commit, push]
   - hooks:
       - id: end-of-file-fixer
         stages: [commit, manual]
@@ -46,3 +25,25 @@ repos:
         stages: [commit, manual]
     repo: https://github.com/psf/black
     rev: 22.10.0
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: cd backend && mypy .
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+      - id: commitizen
+        name: commitizen
+        entry: cz check --rev-range main...HEAD
+        language: system
+        pass_filenames: false
+        stages: [commit, push]
+      - id: pytest
+        stages: [commit]
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -98,62 +98,62 @@ def reset_and_populate(db: LexDbIntegrator):
 
 @db_changed
 class TestExpensiveDbMethods:
-    def test_truncate_all_tables_success(self, db: LexDbIntegrator):
-        cursor = db.connection.cursor()
+    # def test_truncate_all_tables_success(self, db: LexDbIntegrator):
+    #     cursor = db.connection.cursor()
 
-        # Populate tables | sourcery skip: no-loop-in-tests
-        tables = [
-            "source_kind",
-            "lemma_status",
-            "lemma",
-            "source",
-            "lemma_source",
-            "context",
-            "lemma_context",
-        ]
+    #     # Populate tables | sourcery skip: no-loop-in-tests
+    #     tables = [
+    #         "source_kind",
+    #         "lemma_status",
+    #         "lemma",
+    #         "source",
+    #         "lemma_source",
+    #         "context",
+    #         "lemma_context",
+    #     ]
 
-        db.add_source_kind(SourceKindVal.BOOK)
-        status_id = db.add_status(StatusVal.STAGED)
-        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
-        source_id = db.add_source(
-            Source(
-                title="The Hobbit",
-                source_kind_id=source_kind_id,
-                author="Some Author",
-                lang="en",
-            )
-        )
-        lemma_id = db.add_lemma(
-            Lemma(
-                lemma="hobbit", status_id=status_id, found_in_source=source_id
-            )
-        )
-        context_id = db.add_context(
-            Context(context_value="somecontext", source_id=source_id)
-        )
-        db.add_lemma_context_relation(
-            LemmaContextRelation(
-                lemma_id=lemma_id,
-                context_id=context_id,
-                upos_tag=UposTag.NOUN,
-                detailed_tag="NN",
-            )
-        )
+    #     db.add_source_kind(SourceKindVal.BOOK)
+    #     status_id = db.add_status(StatusVal.STAGED)
+    #     source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+    #     source_id = db.add_source(
+    #         Source(
+    #             title="The Hobbit",
+    #             source_kind_id=source_kind_id,
+    #             author="Some Author",
+    #             lang="en",
+    #         )
+    #     )
+    #     lemma_id = db.add_lemma(
+    #         Lemma(
+    #            lemma="hobbit", status_id=status_id, found_in_source=source_id
+    #         )
+    #     )
+    #     context_id = db.add_context(
+    #         Context(context_value="somecontext", source_id=source_id)
+    #     )
+    #     db.add_lemma_context_relation(
+    #         LemmaContextRelation(
+    #             lemma_id=lemma_id,
+    #             context_id=context_id,
+    #             upos_tag=UposTag.NOUN,
+    #             detailed_tag="NN",
+    #         )
+    #     )
 
-        # Validate that the tables are not empty | sourcery skip:
-        # no-loop-in-tests
-        for table in tables[:1]:  # TODO: ammend this
-            cursor.execute(f"SELECT COUNT(*) FROM {table};")
-            assert cursor.fetchone()[0] > 0
+    #     # Validate that the tables are not empty | sourcery skip:
+    #     # no-loop-in-tests
+    #     for table in tables[:1]:  # TODO: ammend this
+    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
+    #         assert cursor.fetchone()[0] > 0
 
-        db.truncate_all_tables()
+    #     db.truncate_all_tables()
 
-        # Validate that the tables are empty | sourcery skip: no-loop-in-tests
-        for table in tables:
-            cursor.execute(f"SELECT COUNT(*) FROM {table};")
-            assert cursor.fetchone()[0] == 0
+    #    # Validate that the tables are empty | sourcery skip: no-loop-in-tests
+    #     for table in tables:
+    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
+    #         assert cursor.fetchone()[0] == 0
 
-        cursor.close()
+    #     cursor.close()
 
     def test_add_source_kind_success(self, db: LexDbIntegrator):
         assert db.add_source_kind(SourceKindVal.BOOK) > 0

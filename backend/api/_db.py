@@ -527,7 +527,7 @@ class LexDbIntegrator:
         if not self.get_source(source_id := rels[0].source_id):
             return False
 
-        rels = list(OrderedDict.fromkeys(rels))
+        rels = [rel for i, rel in enumerate(rels) if rel not in rels[i + 1 :]]
 
         if not self._all_lemmata_exist(
             lemma_ids := [rel.lemma_id for rel in rels]
@@ -796,7 +796,7 @@ class LexDbIntegrator:
         if not self._all_contexts_exist([rel.context_id for rel in rels]):
             return False
 
-        rels = list(OrderedDict.fromkeys(rels))
+        rels = [rel for i, rel in enumerate(rels) if rel not in rels[i + 1 :]]
 
         keys_to_exclude = {"id"}
         query_data = []

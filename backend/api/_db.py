@@ -5,7 +5,7 @@ Programmatic interface for interacting with the lex database.
 """
 import os
 import re
-from collections import Counter, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from typing import Any, Union
 
 import mysql.connector
@@ -326,20 +326,22 @@ class LexDbIntegrator:
         if not self.get_source(found_in_source):
             return {}
 
-        already_in_db = self.bulk_get_lemma_id_dict(lemmata_values).keys()
+        lemmata_values = list(OrderedDict.fromkeys(lemmata_values))
+
+        already_in_db = self.bulk_get_lemma_id_dict(lemmata_values)
 
         to_push = list(
             filter(
-                lambda lemma_val: lemma_val not in already_in_db,
+                lambda lemma_val: lemma_val not in already_in_db.keys(),
                 lemmata_values,
             )
         )
 
         if not to_push:
-            return self.bulk_get_lemma_id_dict(lemmata_values)
+            return already_in_db
 
         sql = (
-            "INSERT IGNORE INTO lemma (lemma, status_id, found_in_source)"
+            "INSERT INTO lemma (lemma, status_id, found_in_source)"
             " VALUES (%s, %s, %s)"
         )
 
@@ -383,7 +385,7 @@ class LexDbIntegrator:
         return lemma
 
     def bulk_get_lemmata(self, lemma_ids: list[LemmaId]) -> list[Lemma]:
-        lemma_ids = list(set(lemma_ids))
+        lemma_ids = list(OrderedDict.fromkeys(lemma_ids))
         cursor = self.connection.cursor()
         sql = (
             "SELECT * FROM lemma WHERE id IN ("
@@ -525,6 +527,8 @@ class LexDbIntegrator:
         if not self.get_source(source_id := rels[0].source_id):
             return False
 
+        rels = list(OrderedDict.fromkeys(rels))
+
         if not self._all_lemmata_exist(
             lemma_ids := [rel.lemma_id for rel in rels]
         ):
@@ -648,7 +652,7 @@ class LexDbIntegrator:
         return context
 
     def bulk_get_contexts(self, cids: list[ContextId]) -> list[Context]:
-        cids = list(set(cids))
+        cids = list(OrderedDict.fromkeys(cids))
         sql = (
             "SELECT * FROM context WHERE id IN ("
             + ",".join(["%s"] * len(cids))
@@ -791,6 +795,8 @@ class LexDbIntegrator:
 
         if not self._all_contexts_exist([rel.context_id for rel in rels]):
             return False
+
+        rels = list(OrderedDict.fromkeys(rels))
 
         keys_to_exclude = {"id"}
         query_data = []

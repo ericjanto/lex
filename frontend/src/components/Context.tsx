@@ -46,23 +46,24 @@ export function Context({
   });
 
   return (
-    <span id={String(context.id)}>
+    <span
+      id={String(context.id)}
+      onMouseOver={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {" "}
       <Link
-        href={`/source/${context.source_id}`}
+        href={`/context/${context.id}`}
         style={{
-          textDecoration: "None",
-          color: "inherit",
+            textDecoration: "None",
         }}
-      >
-        <span style={{ color: "#919191" }}>{" § "}</span>
-        <span
-          onMouseOver={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{ backgroundColor: hovered ? "rgb(229 238 254)" : "" }}
         >
-          {contextValueArrDeserialised}
-        </span>
+        <span style={{ border: hovered ? "1.5px solid black" : "" }}>{"§"}</span>
       </Link>
+      {" "}
+      <span style={{ backgroundColor: hovered ? "rgb(229 238 254)" : "" }}>
+        {contextValueArrDeserialised}
+      </span>
     </span>
   );
 }

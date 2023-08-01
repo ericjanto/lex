@@ -1,6 +1,7 @@
 from typing import Union
 
 import requests
+
 from api._const import Const
 from api._dbtypes import (
     Context,
@@ -9,6 +10,7 @@ from api._dbtypes import (
     LemmaContextId,
     LemmaContextRelation,
     LemmaId,
+    LemmaList,
     LemmaSourceId,
     LemmaSourceRelation,
     Source,
@@ -19,23 +21,18 @@ from api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from api.index import ApiEnvironment, LemmaValue
+from api.index import LemmaValue
 
 
 class ApiRequestor:
     """
     Encapsulation class for sending HTTP requests to the api.
+
+    Connects with local API.
     """
 
-    def __init__(self, api_env: ApiEnvironment) -> None:
-        """
-        Args:
-            env: api environment (dev or prod) to interact with
-        """
-        if api_env == ApiEnvironment.DEV:
-            self.api_url = Const.API_DEV_URL
-        else:
-            raise NotImplementedError
+    def __init__(self) -> None:
+        self.api_url = Const.API_LOCAL_URL
 
     def get_lemma_name(self, lemma_id: LemmaId) -> str:
         r = requests.get(f"{self.api_url}/lemma/{lemma_id}")
@@ -46,6 +43,14 @@ class ApiRequestor:
             f"{self.api_url}/lemma_id", json=LemmaValue(value=lemma).dict()
         )
         return LemmaId(r.json()) if r.status_code == 200 else LemmaId(-1)
+
+    def bulk_get_lemma_id_dict(
+        self,
+        lemmata_values: list[str],
+    ) -> dict[str, LemmaId]:
+        r = requests.get(f"{self.api_url}/bulk_lemma", json=lemmata_values)
+        assert r.status_code == 200
+        return r.json()
 
     def get_lemma_status(self, status_val: StatusVal) -> StatusId:
         r = requests.get(f"{self.api_url}/lemma_status/{status_val.value}")
@@ -85,6 +90,30 @@ class ApiRequestor:
         assert r.status_code == 200
         assert (lid := LemmaId(r.json())) != -1
         return lid
+
+    def bulk_post_lemmata(
+        self,
+        lemmata_values: list[LemmaValue],
+        status_id: StatusId,
+        source_id: SourceId,
+    ) -> dict[LemmaValue, LemmaId]:
+        r = requests.post(
+            f"{self.api_url}/bulk_lemmata",
+            json=LemmaList(
+                lemmata=[
+                    Lemma(
+                        lemma=lemma_val,
+                        status_id=status_id,
+                        found_in_source=source_id,
+                    )
+                    for lemma_val in lemmata_values
+                ]
+            ).to_dict(),
+        )
+        assert r.status_code == 200
+        id_lemma_dict: dict[LemmaValue, LemmaId] = r.json()
+        assert set(lemmata_values) == id_lemma_dict.keys()
+        return id_lemma_dict
 
     def post_status(self, status_val: StatusVal) -> StatusId:
         r = requests.post(
@@ -151,6 +180,17 @@ class ApiRequestor:
         assert (lcid := LemmaContextId(r.json())) != -1
         return lcid
 
+    def bulk_post_lemma_context_relations(
+        self, rels: list[LemmaContextRelation]
+    ) -> bool:
+        r = requests.post(
+            f"{self.api_url}/bulk_lemma_context",
+            json=[rel.to_dict() for rel in rels],
+        )
+        assert r.status_code == 200
+        assert r.json()
+        return r.json()
+
     def post_lemma_source_relation(
         self,
         lemma_id: LemmaId,
@@ -165,6 +205,17 @@ class ApiRequestor:
         assert r.status_code == 200
         assert (lsid := LemmaSourceId(r.json())) != -1
         return lsid
+
+    def bulk_post_lemma_source_relations(
+        self, rels: list[LemmaSourceRelation]
+    ) -> bool:
+        r = requests.post(
+            f"{self.api_url}/bulk_lemma_source",
+            json=[rel.to_dict() for rel in rels],
+        )
+        assert r.status_code == 200
+        assert r.json()
+        return r.json()
 
     def delete_lemmata(self, lemma_ids: set[LemmaId]) -> bool:
         r = requests.delete(f"{self.api_url}/lemma", json=list(lemma_ids))

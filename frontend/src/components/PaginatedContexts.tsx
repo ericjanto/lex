@@ -6,7 +6,13 @@ import { useEffect, useState } from "react";
 const fetcher: Fetcher<Context[]> = (url: RequestInfo | URL) =>
   fetch(url).then((r) => r.json());
 
-function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
+function ContextSetDisplayer({
+  fetchQuery,
+  highlightedLemmaId,
+}: {
+  fetchQuery: string;
+  highlightedLemmaId?: number;
+}) {
   const { data, error, isLoading } = useSWRImmutable(fetchQuery, fetcher);
 
   if (error) return <div>Failed to load: ({JSON.stringify(error)})</div>;
@@ -16,7 +22,11 @@ function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
       {data!.map((context: Context) => {
         return (
           <span key={context.id} id={String(context.id)}>
-            <Context key={context.id} context={context} />
+            <Context
+              key={context.id}
+              context={context}
+              highlightedLemmaId={highlightedLemmaId}
+            />
           </span>
         );
       })}
@@ -27,9 +37,11 @@ function ContextSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
 export default function PaginatedContexts({
   fetchQuery,
   page_size,
+  highlightedLemmaId,
 }: {
   fetchQuery: string;
   page_size: number;
+  highlightedLemmaId?: number;
 }) {
   const [page, setPage] = useState(1);
   const [allLoaded, setAllLoaded] = useState(false);
@@ -54,6 +66,7 @@ export default function PaginatedContexts({
           <ContextSetDisplayer
             key={i}
             fetchQuery={`${fetchQuery}?page=${i + 1}&page_size=${page_size}`}
+            highlightedLemmaId={highlightedLemmaId}
           />
         );
       })}

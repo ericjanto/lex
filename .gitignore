@@ -2,3 +2,4 @@ dev-samples
 .env*
 uncommitted
 __pycache__
+t.txt

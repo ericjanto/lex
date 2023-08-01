@@ -14,10 +14,11 @@ import shutil
 
 import ebooklib
 import typer
-from api._dbtypes import SourceKindVal, SourceMetadata
 from bs4 import BeautifulSoup
 from ebooklib import epub
 from ebooklib.epub import EpubBook
+
+from api._dbtypes import SourceKindVal, SourceMetadata
 
 
 class ContentExtractor:

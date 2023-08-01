@@ -1,26 +1,25 @@
+import cProfile
 from pathlib import Path
 
 import typer
-from api._dbtypes import LemmaId
-from api.index import ApiEnvironment
 from rich import print as rprint
+
+from api._dbtypes import LemmaId
+from api._utils import absolutify_path_from_root
 
 from .contentextractor import ContentExtractor
 from .textparser import TextParser
 from .vocabmanager import VocabManager
 
 cli = typer.Typer()
-global api_env
-api_env = ApiEnvironment.DEV
 
 
 @cli.command("add")
-def add(
-    path: Path,
-    bv: bool = False,
-):
+def add(path: Path, bv: bool = False, profile: bool = False):
+    # sourcery skip: merge-else-if-into-elif
     """
     Parse a new file into the database or base vocabulary (--bv).
+    Produce an `add.profile` file (--profile).
     """
     if not path.is_file():
         raise typer.BadParameter("path")
@@ -28,12 +27,34 @@ def add(
     extractor = ContentExtractor(str(path))
     content_path, meta_path = extractor.extract(meta=not bv)
 
-    parser = TextParser(api_env)
+    parser = TextParser()
 
     if bv:
-        parser.parse_into_base_vocab(content_path)
+        (
+            cProfile.runctx(
+                "parser.parse_into_base_vocab(content_path)",
+                locals=locals(),
+                globals=globals(),
+                filename=absolutify_path_from_root(
+                    "/uncommitted/dbparse-bv.profile"
+                ),
+            )
+            if profile
+            else parser.parse_into_base_vocab(content_path)
+        )
     else:
-        parser.parse_into_db(content_path, meta_path)
+        (
+            cProfile.runctx(
+                "parser.parse_into_db(content_path, meta_path)",
+                locals=locals(),
+                globals=globals(),
+                filename=absolutify_path_from_root(
+                    "/uncommitted/dbparse-7.profile"
+                ),
+            )
+            if profile
+            else parser.parse_into_db(content_path, meta_path)
+        )
 
     extractor.clean()
 
@@ -45,7 +66,7 @@ def rm(
     """
     Remove a lemma and all associated data from the database.
     """
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.transfer_lemma_to_irrelevant_vocab(lemma):
         rprint(f"[green]Successfully removed '{lemma}'.")
     else:
@@ -63,7 +84,7 @@ def rmm(
     Remove all lemmata passed specified by their ID.
     """
     lids = {LemmaId(lid) for lid in lemma_ids}
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.transfer_lemmata_to_irrelevant_vocab(lids):
         rprint("[green]Successfully removed all lemmata.")
     else:
@@ -78,7 +99,7 @@ def commit(lemma: str):
     """
     Change the status of a lemma from 'staged' to 'committed'.
     """
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.commit_lemma(lemma):
         rprint(f"[green]Successfully committed '{lemma}'.")
     else:
@@ -94,7 +115,7 @@ def commitm(lemma_ids: list[int]):
     Commits all lemmata specified by their ID.
     """
     lids = {LemmaId(lid) for lid in lemma_ids}
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.commit_lemmata(lids):
         rprint("[green]Successfully updated all lemma statuses.")
     else:
@@ -109,7 +130,7 @@ def push(lemma: str):
     """
     Change the status of a lemma from 'staged' to 'committed'.
     """
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.push_lemma(lemma):
         rprint(f"[green]Successfully pushed '{lemma}'.")
     else:
@@ -125,7 +146,7 @@ def pushm(lemma_ids: list[int]):
     Push all lemmata specified by their ID.
     """
     lids = {LemmaId(lid) for lid in lemma_ids}
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     if vm.push_lemmata(lids):
         rprint("[green]Successfully pushed all lemmata.")
     else:
@@ -142,25 +163,9 @@ def list(
     """
     List the top {head} staged lemmata.
     """
-    vm = VocabManager(api_env)
+    vm = VocabManager()
     vm.print_staged_lemma_rows(page_size=head)
 
 
-def set_api_env():
-    """
-    Set the API environment to production or development.
-    """
-    api_env = typer.prompt(
-        "Connect to API environment at DEV or PROD url?",
-        type=ApiEnvironment,
-        default=ApiEnvironment.DEV,
-    )
-    rprint(f"[green]Communicating with {api_env.value} API.")
-
-
 def main():
-    set_api_env()
     cli()
-
-
-# if __name__ == "__main__":

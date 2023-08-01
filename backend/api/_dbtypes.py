@@ -71,11 +71,13 @@ class StatusVal(Enum):
 class ConfiguredBaseModel(BaseModel):
     def to_dict(self):
         data = self.dict()
+
         update_dates = {
             k: v.isoformat()
             for k, v in data.items()
             if isinstance(v, datetime)
         }
+
         update_enums = {
             k: v.value for k, v in data.items() if isinstance(v, Enum)
         }
@@ -116,6 +118,13 @@ class Lemma(ConfiguredBaseModel):
     created: datetime = datetime(1970, 1, 1)
     status_id: StatusId
     found_in_source: SourceId
+
+
+class LemmaList(ConfiguredBaseModel):
+    lemmata: list[Lemma]
+
+    def to_dict(self):
+        return {"lemmata": [lemma.to_dict() for lemma in self.lemmata]}
 
 
 class LemmaSourceRelation(ConfiguredBaseModel):

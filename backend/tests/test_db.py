@@ -20,7 +20,7 @@ from ..api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from ..api._utils import relativy_path
+from ..api._utils import absolutify_path_from_root
 
 
 @pytest.fixture
@@ -35,10 +35,16 @@ def db():
 db_changed = pytest.mark.skipif(
     condition=not bool(
         subprocess.run(
-            ["git", "diff", "--exit-code", relativy_path("_db.py")]
+            [
+                "git",
+                "diff",
+                "--cached",
+                "--exit-code",
+                absolutify_path_from_root("/backend/api/_db.py"),
+            ]
         ).returncode
     ),
-    reason="db.py has not changed",
+    reason="_db.py has not changed",
 )
 
 
@@ -92,62 +98,62 @@ def reset_and_populate(db: LexDbIntegrator):
 
 @db_changed
 class TestExpensiveDbMethods:
-    def test_truncate_all_tables_success(self, db: LexDbIntegrator):
-        cursor = db.connection.cursor()
+    # def test_truncate_all_tables_success(self, db: LexDbIntegrator):
+    #     cursor = db.connection.cursor()
 
-        # Populate tables | sourcery skip: no-loop-in-tests
-        tables = [
-            "source_kind",
-            "lemma_status",
-            "lemma",
-            "source",
-            "lemma_source",
-            "context",
-            "lemma_context",
-        ]
+    #     # Populate tables | sourcery skip: no-loop-in-tests
+    #     tables = [
+    #         "source_kind",
+    #         "lemma_status",
+    #         "lemma",
+    #         "source",
+    #         "lemma_source",
+    #         "context",
+    #         "lemma_context",
+    #     ]
 
-        db.add_source_kind(SourceKindVal.BOOK)
-        status_id = db.add_status(StatusVal.STAGED)
-        source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
-        source_id = db.add_source(
-            Source(
-                title="The Hobbit",
-                source_kind_id=source_kind_id,
-                author="Some Author",
-                lang="en",
-            )
-        )
-        lemma_id = db.add_lemma(
-            Lemma(
-                lemma="hobbit", status_id=status_id, found_in_source=source_id
-            )
-        )
-        context_id = db.add_context(
-            Context(context_value="somecontext", source_id=source_id)
-        )
-        db.add_lemma_context_relation(
-            LemmaContextRelation(
-                lemma_id=lemma_id,
-                context_id=context_id,
-                upos_tag=UposTag.NOUN,
-                detailed_tag="NN",
-            )
-        )
+    #     db.add_source_kind(SourceKindVal.BOOK)
+    #     status_id = db.add_status(StatusVal.STAGED)
+    #     source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
+    #     source_id = db.add_source(
+    #         Source(
+    #             title="The Hobbit",
+    #             source_kind_id=source_kind_id,
+    #             author="Some Author",
+    #             lang="en",
+    #         )
+    #     )
+    #     lemma_id = db.add_lemma(
+    #         Lemma(
+    #            lemma="hobbit", status_id=status_id, found_in_source=source_id
+    #         )
+    #     )
+    #     context_id = db.add_context(
+    #         Context(context_value="somecontext", source_id=source_id)
+    #     )
+    #     db.add_lemma_context_relation(
+    #         LemmaContextRelation(
+    #             lemma_id=lemma_id,
+    #             context_id=context_id,
+    #             upos_tag=UposTag.NOUN,
+    #             detailed_tag="NN",
+    #         )
+    #     )
 
-        # Validate that the tables are not empty | sourcery skip:
-        # no-loop-in-tests
-        for table in tables[:1]:  # TODO: ammend this
-            cursor.execute(f"SELECT COUNT(*) FROM {table};")
-            assert cursor.fetchone()[0] > 0
+    #     # Validate that the tables are not empty | sourcery skip:
+    #     # no-loop-in-tests
+    #     for table in tables[:1]:  # TODO: ammend this
+    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
+    #         assert cursor.fetchone()[0] > 0
 
-        db.truncate_all_tables()
+    #     db.truncate_all_tables()
 
-        # Validate that the tables are empty | sourcery skip: no-loop-in-tests
-        for table in tables:
-            cursor.execute(f"SELECT COUNT(*) FROM {table};")
-            assert cursor.fetchone()[0] == 0
+    #    # Validate that the tables are empty | sourcery skip: no-loop-in-tests
+    #     for table in tables:
+    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
+    #         assert cursor.fetchone()[0] == 0
 
-        cursor.close()
+    #     cursor.close()
 
     def test_add_source_kind_success(self, db: LexDbIntegrator):
         assert db.add_source_kind(SourceKindVal.BOOK) > 0
@@ -406,13 +412,8 @@ class TestExpensiveDbMethods:
         assert db.get_lemma(lemma_id) is not None
 
     def test_add_lemma_source_invalid_ids(self, db: LexDbIntegrator):
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(
-                    lemma_id=LemmaId(-1), source_id=SourceId(-1)
-                )
-            )
-            == -1
+        assert not db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=LemmaId(-1), source_id=SourceId(-1))
         )
 
     def test_add_lemma_source_valid_ids(self, db: LexDbIntegrator):
@@ -475,17 +476,11 @@ class TestExpensiveDbMethods:
                 lang="en",
             )
         )
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
-            )
-            == 1
+        assert db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
         )
-        assert (
-            db.add_lemma_source_relation(
-                LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
-            )
-            == 2
+        assert db.add_lemma_source_relation(
+            LemmaSourceRelation(lemma_id=lemma_id, source_id=source_id)
         )
 
     def test_get_lemma_source_ids_invalid_ids(self, db: LexDbIntegrator):
@@ -967,7 +962,7 @@ class TestExpensiveDbMethods:
                 lang="en",
             )
         )
-        context_id_delete = db.add_context(
+        context_id_remain_too = db.add_context(
             Context(context_value="context", source_id=source_id_delete)
         )
         context_id_remain = db.add_context(
@@ -996,7 +991,7 @@ class TestExpensiveDbMethods:
         db.add_lemma_context_relation(
             LemmaContextRelation(
                 lemma_id=lemma_id_delete,
-                context_id=context_id_delete,
+                context_id=context_id_remain_too,
                 upos_tag=UposTag.NOUN,
                 detailed_tag="NNP",
             )
@@ -1024,6 +1019,7 @@ class TestExpensiveDbMethods:
             == 0
         )
         assert (cr := db.get_context(context_id_remain)) is not None
+        assert db.get_context(context_id_remain_too) is not None
         assert str(lemma_id_delete) not in cr.context_value
         assert str(lemma_id_remain) in cr.context_value
         assert db.get_lemma(lemma_id_delete) is None

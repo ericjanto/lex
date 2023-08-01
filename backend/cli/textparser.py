@@ -12,16 +12,23 @@ from typing import NamedTuple
 
 import en_core_web_trf
 import spacy
-from api._const import Const
-from api._dbtypes import LemmaId, SourceMetadata, StatusVal, UposTag
-from api._utils import buf_count_newlines
-from api.index import ApiEnvironment
 from rich.progress import Progress
 from spacy.lang.en.stop_words import (
     STOP_WORDS,  # TODO @ej localisation-relevant
 )
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
+
+from api._const import Const
+from api._dbtypes import (
+    LemmaContextRelation,
+    LemmaId,
+    LemmaSourceRelation,
+    SourceMetadata,
+    StatusVal,
+    UposTag,
+)
+from api._utils import buf_count_newlines, enhanced_progress_params
 
 from .apirequestor import ApiRequestor
 
@@ -38,7 +45,7 @@ class TextParser:
     Parsing class which extracts vocabulary from text.
     """
 
-    def __init__(self, api_env: ApiEnvironment) -> None:
+    def __init__(self) -> None:
         """
         TODO
 
@@ -47,7 +54,7 @@ class TextParser:
           this allows us to reuse the same instance for parsing of
           multiple documents
         """
-        self.api = ApiRequestor(api_env)
+        self.api = ApiRequestor()
 
         self.nlp = en_core_web_trf.load()  # TODO @ej localisation-relevant
         self._customise_tokenisation()
@@ -70,7 +77,9 @@ class TextParser:
 
         content_line_num = buf_count_newlines(content_path)
 
-        with self.nlp_parsing_pipes, open(content_path) as f, Progress() as p:
+        with self.nlp_parsing_pipes, open(content_path) as f, Progress(
+            *enhanced_progress_params()
+        ) as p:
             task = p.add_task(
                 "[yellow]Parsing into base vocabulary", total=content_line_num
             )
@@ -125,26 +134,63 @@ class TextParser:
         )
         status_id_staged = self.api.post_status(StatusVal.STAGED)
 
+        self._normalise_file(content_path)
         content_line_num = buf_count_newlines(content_path)
-
-        with self.nlp_parsing_pipes, open(content_path) as f, Progress() as p:
+        with self.nlp_parsing_pipes, open(content_path) as f, Progress(
+            *enhanced_progress_params()
+        ) as p:
             task = p.add_task(
                 "[yellow]Parsing into database", total=content_line_num
             )
 
-            raw_context = " "
-            while raw_context:
-                # if raw_context != " ":
+            # TODO: [perf] further batch requests (e.g. 1000 lemmata at a time,
+            #              not in every batch loop)
+            raw_context = []
+            pre_spill = []
+            post_spill = []
+            while True:
                 p.advance(task, Const.CONTEXT_LINE_NUM)
 
-                raw_context = " ".join(
-                    [
+                if not post_spill:
+                    raw_context = [
                         line.strip()
                         for line in islice(f, Const.CONTEXT_LINE_NUM)
                     ]
+                else:
+                    raw_context = post_spill + [
+                        line.strip()
+                        for line in islice(
+                            f, Const.CONTEXT_LINE_NUM - Const.SPILL_LINE_NUM
+                        )
+                    ]
+
+                if not raw_context:
+                    break
+
+                post_spill = [
+                    line.strip() for line in islice(f, Const.SPILL_LINE_NUM)
+                ]
+
+                spilled_context = " ".join(
+                    pre_spill + raw_context + post_spill
                 )
 
-                doc_complete = self.nlp(raw_context)
+                doc_spilled = self.nlp(spilled_context)
+
+                # TODO: only tokenise, don't use all the other pipes
+                pre_spill_len = len(self.nlp(" ".join(pre_spill)))
+                post_spill_len = len(self.nlp(" ".join(post_spill)))
+
+                if raw_context and len(raw_context) >= Const.SPILL_LINE_NUM:
+                    pre_spill = [raw_context[-Const.SPILL_LINE_NUM]]
+                elif raw_context:
+                    pre_spill = raw_context
+                else:
+                    pre_spill = []
+
+                doc_context = doc_spilled[
+                    pre_spill_len : len(doc_spilled) - post_spill_len
+                ]
 
                 doc_filtered = list(
                     filter(
@@ -153,19 +199,32 @@ class TextParser:
                             existing_base_vocab,
                             existing_irrelevant_vocab,
                         ),
-                        doc_complete,
+                        doc_context,
                     )
                 )
 
                 if not doc_filtered:
+                    context_value = self._construct_context_value(
+                        doc_context, {}
+                    )
+                    self.api.post_context(context_value, source_id)
                     continue
+
+                # TODO: I think spacy lowers lemma text by default
+                lemmata_values = [t.lemma_.lower() for t in doc_filtered]
+
+                self.api.bulk_post_lemmata(
+                    lemmata_values=lemmata_values,
+                    status_id=status_id_staged,
+                    source_id=source_id,
+                )
+
+                lemma_id_dict = self.api.bulk_get_lemma_id_dict(lemmata_values)
 
                 db_data = {
                     t.text: IntermediaryDbDatum(
                         lemma := t.lemma_.lower(),
-                        self.api.post_lemma(
-                            lemma, status_id_staged, source_id
-                        ),
+                        lemma_id_dict[lemma],
                         t.tag_,
                         UposTag(t.pos_),
                     )
@@ -173,17 +232,29 @@ class TextParser:
                 }
 
                 context_value = self._construct_context_value(
-                    doc_complete, db_data
+                    doc_context, db_data
                 )
                 context_id = self.api.post_context(context_value, source_id)
 
+                source_rels = []
+                context_rels = []
                 for datum in db_data.values():
-                    self.api.post_lemma_source_relation(
-                        datum.lemma_id, source_id
+                    source_rels.append(
+                        LemmaSourceRelation(
+                            lemma_id=datum.lemma_id, source_id=source_id
+                        )
                     )
-                    self.api.post_lemma_context_relation(
-                        datum.lemma_id, context_id, datum.pos, datum.tag
+                    context_rels.append(
+                        LemmaContextRelation(
+                            lemma_id=datum.lemma_id,
+                            context_id=context_id,
+                            upos_tag=datum.pos,
+                            detailed_tag=datum.tag,
+                        )
                     )
+
+                self.api.bulk_post_lemma_source_relations(source_rels)
+                self.api.bulk_post_lemma_context_relations(context_rels)
 
     def _customise_tokenisation(self):
         prefixes = self.nlp.Defaults.prefixes + [r"""^-+"""]  # type: ignore
@@ -241,9 +312,51 @@ class TextParser:
 
         return json.dumps(context_value)
 
+    @staticmethod
+    def _normalise_file(path: str):
+        wrapped_lines = []
+        min_length = 60
+        max_length = 80
+        with open(path) as f:
+            borrowed = ""
+            for i, line in enumerate(f):
+                bline = f"{borrowed} {line.rstrip()}".lstrip()
+
+                if len(bline) == 0 and i != 0:
+                    continue
+
+                if len(bline) < min_length:
+                    borrowed = bline
+                    continue
+
+                if len(bline) <= max_length:
+                    wrapped_lines.append(f"{bline}\n")
+                    borrowed = ""
+                    continue
+
+                break_point = bline.rfind(" ", 0, max_length - 1)
+                if break_point == -1:
+                    break_point = max_length
+                wrapped_lines.append(f"{bline[:break_point]}\n")
+                borrowed = bline[break_point:].lstrip()
+
+            while borrowed:
+                if len(borrowed) <= max_length:
+                    wrapped_lines.append(f"{borrowed}\n")
+                    borrowed = ""
+                else:
+                    break_point = borrowed.rfind(" ", 0, max_length - 1)
+                    if break_point == -1:
+                        break_point = max_length
+                    wrapped_lines.append(f"{borrowed[:break_point]}\n")
+                    borrowed = borrowed[break_point:].lstrip()
+
+        with open(path, "w") as f:
+            f.writelines(wrapped_lines)
+
 
 if __name__ == "__main__":
-    tp = TextParser(ApiEnvironment.DEV)
+    tp = TextParser()
     tp.parse_into_db(
         "assets/dev-samples/harry-potter.content.txt",
         "assets/dev-samples/harry-potter.meta.json",

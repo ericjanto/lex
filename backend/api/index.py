@@ -2,10 +2,11 @@
 API
 ===
 Exposes endpoints to interact with the database.
+
+TODO: merge _db.py into this. Possible with async?
 """
 
 import os
-from enum import Enum
 from typing import TypedDict, Union
 
 from fastapi import FastAPI
@@ -22,6 +23,7 @@ from ._dbtypes import (
     LemmaContextId,
     LemmaContextRelation,
     LemmaId,
+    LemmaList,
     LemmaSourceId,
     LemmaSourceRelation,
     Source,
@@ -35,31 +37,27 @@ from ._dbtypes import (
 )
 
 origins = ["*"]
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
 
 
 def set_db_env(env: DbEnvironment):
     global db
-    rprint(f"[green]Connecting to {env.value} database branch.")
+    rprint(f"[green]Connected to {env.value} database branch.")
     db = LexDbIntegrator(env)
 
 
 if os.environ.get("VERCEL"):
     set_db_env(DbEnvironment.PROD)
 else:
-    set_db_env(DbEnvironment.DEV)
-
-
-class ApiEnvironment(str, Enum):
-    PROD = "PROD"
-    DEV = "DEV"
+    set_db_env(DbEnvironment.PROD)
 
 
 class EmptyDict(TypedDict, total=False):
@@ -78,6 +76,11 @@ async def read_root():
 @app.get("/lemma/{lemma_id}")
 async def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
     return db.get_lemma(lemma_id) or EmptyDict()
+
+
+@app.get("/bulk_lemma")
+async def bulk_get_lemma(lemmata_values: list[str]) -> dict[str, LemmaId]:
+    return db.bulk_get_lemma_id_dict(lemmata_values)
 
 
 @app.get("/lemma_id")
@@ -171,6 +174,23 @@ async def post_lemma(lemma: Lemma) -> LemmaId:
     return db.add_lemma(lemma)
 
 
+@app.post("/bulk_lemmata")
+async def post_bulk_lemmata(
+    lemma_list: LemmaList,
+) -> dict[str, LemmaId]:
+    lemmata = lemma_list.lemmata
+    if len(lemmata) == 0:
+        return {}
+
+    status_id = lemmata[0].status_id
+    found_in_source = lemmata[0].found_in_source
+    return db.bulk_add_lemma(
+        [lemma.lemma for lemma in lemmata],
+        status_id=status_id,
+        found_in_source=found_in_source,
+    )
+
+
 @app.post("/lemma_status")
 async def post_status(status_val: StatusVal) -> StatusId:
     return db.add_status(status_val)
@@ -181,6 +201,13 @@ async def post_lemma_source_relation(
     lemma_source_relation: LemmaSourceRelation,
 ) -> LemmaSourceId:
     return db.add_lemma_source_relation(lemma_source_relation)
+
+
+@app.post("/bulk_lemma_source")
+async def bulk_post_lemma_source_relations(
+    rels: list[LemmaSourceRelation],
+) -> bool:
+    return db.bulk_add_lemma_source_relations(rels)
 
 
 @app.post("/source_kind")
@@ -203,6 +230,13 @@ async def post_lemma_context_relation(
     lemma_context_relation: LemmaContextRelation,
 ) -> LemmaContextId:
     return db.add_lemma_context_relation(lemma_context_relation)
+
+
+@app.post("/bulk_lemma_context")
+async def bulk_post_lemma_context_relations(
+    rels: list[LemmaContextRelation],
+) -> bool:
+    return db.bulk_add_lemma_context_relations(rels)
 
 
 @app.delete("/lemma")

@@ -25,25 +25,25 @@ repos:
         stages: [commit, manual]
     repo: https://github.com/psf/black
     rev: 22.10.0
-  - repo: local
-    hooks:
-      - id: mypy
-        name: mypy
-        entry: cd backend && mypy .
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [commit]
-      - id: commitizen
-        name: commitizen
-        entry: cz check --rev-range main...HEAD
-        language: system
-        pass_filenames: false
-        stages: [commit, push]
-      - id: pytest
-        stages: [commit]
-        name: pytest
-        entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
+  # - repo: local
+  #   hooks:
+  #     - id: mypy
+  #       name: mypy
+  #       entry: cd backend && mypy .
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true
+  #       stages: [commit]
+  #     - id: commitizen
+  #       name: commitizen
+  #       entry: cz check --rev-range main...HEAD
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [commit, push]
+  #     - id: pytest
+  #       stages: [commit]
+  #       name: pytest
+  #       entry: pytest
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true

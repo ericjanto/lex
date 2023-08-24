@@ -1,5 +1,3 @@
-Lex is a vocabulary management system for personal use.
-
 ## Local setup
 
 ```

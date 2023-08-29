@@ -4,6 +4,7 @@ Vocabulary Manager
 Collection of functionality to show and modify the vocabulary.
 """
 
+from datetime import datetime
 from typing import Union
 
 from api._const import Const
@@ -27,20 +28,30 @@ class VocabManager:
                 Const.PATH_IRRELEVANT_VOCAB
             )
             if lemma not in irrelevant_vocab:
-                with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f:
+                with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f, open(
+                    Const.PATH_METADATA_DELETION, "a"
+                ) as fmeta:
                     f.write(f"{lemma}\n")
+                    dt = datetime.now()
+                    dt_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    fmeta.write(f"{lemma},{dt_str}\n")
         return result
 
     def transfer_lemmata_to_irrelevant_vocab(
         self, lemma_ids: set[LemmaId]
     ) -> bool:
         irrelevant_vocab = TextParser._load_vocab(Const.PATH_IRRELEVANT_VOCAB)
-        with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f:
+        with open(Const.PATH_IRRELEVANT_VOCAB, "a") as f, open(
+            Const.PATH_METADATA_DELETION, "a"
+        ) as fmeta:
             for lid in lemma_ids:
                 if (
                     lemma := self.api.get_lemma_name(lid)
                 ) and lemma not in irrelevant_vocab:
                     f.write(f"{lemma}\n")
+                    dt = datetime.now()
+                    dt_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    fmeta.write(f"{lemma},{dt_str}\n")
         return self.api.delete_lemmata(lemma_ids)
 
     def print_staged_lemma_rows(

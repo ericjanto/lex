@@ -142,3 +142,6 @@ officer
 salt
 criminal
 witness
+murderer
+accuse
+satisfied

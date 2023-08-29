@@ -23,6 +23,14 @@ class Const:
         "/backend/assets/reference-vocabulary/vocabulary.irrelevant.txt"
     )
 
+    PATH_METADATA_DELETION = absolutify_path_from_root(
+        "/backend/assets/metadata/deletion.csv"
+    )
+
+    PATH_METADATA_PUSH = absolutify_path_from_root(
+        "/backend/assets/metadata/push.csv"
+    )
+
     SPILL_LINE_NUM = 3
     CONTEXT_LINE_NUM = 10
 

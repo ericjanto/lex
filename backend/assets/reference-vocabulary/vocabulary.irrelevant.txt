@@ -145,3 +145,6 @@ witness
 murderer
 accuse
 satisfied
+broker
+refute
+perpetrate

@@ -1,6 +1,6 @@
 - `backend/requirements.txt` specifies dependencies for vercel lambdas
 - poetry shell
-- poetry run cli.py
+- poetry run python cli.py (from deactivated shell, installation seems faulty)
 - cd backend, poetry shell, cd .., make apiuvi / make
 
 ## Local setup

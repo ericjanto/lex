@@ -1,3 +1,5 @@
+- `backend/requirements.txt` specifies dependencies for vercel lambdas
+
 ## Local setup
 
 ```

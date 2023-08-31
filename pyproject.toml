@@ -36,3 +36,10 @@ check_untyped_defs = true
 exclude = [
     "uncommitted",
 ]
+
+[tool.poetry]
+name = "lex-backend"
+version = "0.1.0"
+description = ""
+authors = ["Eric Janto <e.janto@gmx.de>"]
+readme = "README.md"

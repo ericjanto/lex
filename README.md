@@ -1,6 +1,10 @@
 - `backend/requirements.txt` specifies dependencies for vercel lambdas
+- poetry shell
+- poetry run cli.py
 
 ## Local setup
+- `cd backend && poetry install`
+- `cd frontend && pnpm i`
 
 ```
 make setup

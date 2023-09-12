@@ -128,7 +128,7 @@ def commitm(lemma_ids: list[int]):
 @cli.command("push")
 def push(lemma: str):
     """
-    Change the status of a lemma from 'staged' to 'committed'.
+    Change the status of a lemma from 'committed' to 'pushed'.
     """
     vm = VocabManager()
     if vm.push_lemma(lemma):

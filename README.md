@@ -1,11 +1,10 @@
 - `backend/requirements.txt` specifies dependencies for vercel lambdas
-- poetry shell
-- poetry run python cli.py (from deactivated shell, installation seems faulty)
-- cd backend, poetry shell, cd .., make apiuvi / make
+- from root: `poetry shell && make`
+- spawn new shell, then: `cd backend && python cli.py [command]`
 
 ## Local setup
 - `cd backend && poetry install`
-- `cd frontend && pnpm i`
+- `cd ../frontend && pnpm i`
 
 ```
 make setup

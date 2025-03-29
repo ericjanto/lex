@@ -19,14 +19,6 @@ apidocs:
 apischema:
 	open http://127.0.0.1:8000/openapi.json
 
-.PHONY: dbdev
-dbdev:
-	pscale shell lex development
-
-.PHONY: dbprod
-dbprod:
-	pscale shell lex main
-
 .PHONY: dbadd
 dbadd:
 	cp $(BASE_VOCAB_PATH) t.txt
@@ -52,6 +44,10 @@ bsetupvalidate:
 .PHONY: fdev
 fdev:
 	(cd frontend; pnpm run dev)
+
+.PHONY: psql
+psql:
+	psql -h db.ukscvswrfgovddjrmnzq.supabase.co -d postgres -U postgres
 
 .PHONY: pre
 pre:

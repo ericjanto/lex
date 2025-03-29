@@ -9,20 +9,22 @@ Lex is an NLP tool which was developed around this observation. Its goal is to f
 - spawn new shell, then: `cd backend && python cli.py [command]`
 
 ## Local setup
+Prerequisites:
+- python3.11
+- poetry
+- pnpm
+- conda
+
+Run:
 - `cd backend && poetry install`
 - `cd ../frontend && pnpm i`
-
-```
-make setup
-```
-
+- cd .. && make bsetup
 - conda activate lex-backend
 - cd backend
 - mypy .
 - mypy --install-types
 - pre-commit install --hook-type pre-commit
 - make bsetupvalidate
-- env file
 
 ## commitizen
 - `cz c` to commit staged files

@@ -1,6 +1,7 @@
 fastapi==0.99.1
 gunicorn
 mysql-connector-python
+psycopg2
 pydantic
 python-dotenv
 rich

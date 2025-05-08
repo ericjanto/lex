@@ -23,7 +23,6 @@ class DbEnvironment(Enum):
 
     PROD = "PROD"
     DEV = "DEV"
-    DEVADMIN = "DEVADMIN"
 
 
 class SourceKindVal(Enum):
@@ -70,7 +69,7 @@ class StatusVal(Enum):
 
 class ConfiguredBaseModel(BaseModel):
     def to_dict(self):
-        data = self.dict()
+        data = self.model_dump()
 
         update_dates = {
             k: v.isoformat()

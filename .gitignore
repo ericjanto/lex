@@ -3,3 +3,4 @@ dev-samples
 uncommitted
 __pycache__
 t.txt
+.vscode

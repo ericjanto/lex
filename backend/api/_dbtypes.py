@@ -69,7 +69,7 @@ class StatusVal(Enum):
 
 class ConfiguredBaseModel(BaseModel):
     def to_dict(self):
-        data = self.model_dump()
+        data = self.dict()
 
         update_dates = {
             k: v.isoformat()

@@ -50,7 +50,7 @@ app.add_middleware(
 
 def set_db_env(env: DbEnvironment):
     global db
-    rprint(f"[green]Connected to {env.value} database branch.")
+    rprint(f"[green]Connected to {env.value} database schema.")
     db = LexDbIntegrator(env)
 
 
@@ -66,6 +66,11 @@ class EmptyDict(TypedDict, total=False):
 
 class LemmaValue(BaseModel):
     value: str
+
+
+@app.get("/")
+async def landing():
+    return {"api_status": "working"}
 
 
 @app.get("/api_status")

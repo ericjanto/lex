@@ -19,6 +19,7 @@ rich==13.4.2
 setuptools
 spacy==3.6.0
 spacy[apple]
+supabase
 types-requests
 ruff
 uvicorn[standard]

@@ -23,7 +23,6 @@ class DbEnvironment(Enum):
 
     PROD = "PROD"
     DEV = "DEV"
-    DEVADMIN = "DEVADMIN"
 
 
 class SourceKindVal(Enum):

@@ -1,16 +1,17 @@
 """
 db
 ==
-Programmatic interface for interacting with the lex database.
+Lex database API
 """
+
 import os
 import re
-from collections import Counter, OrderedDict, defaultdict
-from typing import Any, Union
+from collections import Counter, OrderedDict
+from typing import Union
 
-import mysql.connector
 from dotenv import load_dotenv
 from pydantic import parse_obj_as
+from supabase import Client, create_client
 from tabulate import tabulate
 
 from ._dbtypes import (
@@ -45,70 +46,85 @@ class LexDbIntegrator:
         Initializes the database connection
         """
         self.env = env
-
         load_dotenv()
-        host = os.getenv(f"HOST_{env.value}")
-        user = os.getenv(f"USERNAME_{env.value}")
-        passwd = os.getenv(f"PASSWORD_{env.value}")
-        db = os.getenv("DATABASE")
+        # Updated environment variables for Supabase
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
 
-        self.connection = mysql.connector.connect(
-            host=host,
-            user=user,
-            passwd=passwd,
-            db=db,
-            autocommit=True,
+        # Get the appropriate schema based on environment
+        self.schema = os.getenv(
+            "SUPABASE_SCHEMA_PROD"
+            if env == DbEnvironment.PROD
+            else "SUPABASE_SCHEMA_DEV",
+            "public",
         )
 
-    def close_connection(self):
-        """
-        Closes the database connection
-        """
-        self.connection.close()
+        if not supabase_url or not supabase_key:
+            raise ValueError(
+                "SUPABASE_URL and SUPABASE_KEY must be set in .env"
+            )
+
+        # Changed connection from MySQL to Supabase
+        self.connection: Client = create_client(supabase_url, supabase_key)
 
     def truncate_all_tables(self):
         """
         Wipes the database rows while preserving the schema.
         """
-        assert self.env in [DbEnvironment.DEV, DbEnvironment.DEVADMIN]
-        cursor = self.connection.cursor()
-        statements = [
-            "TRUNCATE TABLE source_kind;",
-            "TRUNCATE TABLE lemma_status;",
-            "TRUNCATE TABLE source;",
-            "TRUNCATE TABLE lemma;",
-            "TRUNCATE TABLE lemma_source;",
-            "TRUNCATE TABLE context;",
-            "TRUNCATE TABLE lemma_context;",
+        assert self.env == DbEnvironment.DEV
+
+        tables = [
+            "source_kind",
+            "lemma_status",
+            "source",
+            "lemma",
+            "lemma_source",
+            "context",
+            "lemma_context",
         ]
-        for s in statements:
-            cursor.execute(s, [])
-        self.connection.commit()
-        cursor.close()
+
+        truncate_query = (
+            f"TRUNCATE TABLE {', '.join(tables)} RESTART IDENTITY CASCADE;"
+        )
+        self.connection.rpc("execute_sql", {"sql": truncate_query}).execute()
 
     def add_source_kind(self, source_kind: SourceKindVal) -> SourceKindId:
         """
         Adds a new source kind to the database if it doesn't exist already.
         Returns -1 if invalid source kind.
         """
-        cursor = self.connection.cursor()
-        sql = "INSERT IGNORE INTO source_kind (kind) VALUES (%s)"
-        cursor.execute(sql, (source_kind.value,))
-        self.connection.commit()
-        skid = self.get_source_kind_id(source_kind)
-        cursor.close()
-        return skid
+        # Check if source kind exists first
+        existing_id = self.get_source_kind_id(source_kind)
+        if existing_id != -1:
+            return existing_id
+
+        # Insert the new source kind
+        response = (
+            self.connection.table("source_kind")
+            .insert({"kind": source_kind.value})
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return SourceKindId(-1)
+
+        return SourceKindId(response.data[0]["id"])
 
     def get_source_kind_id(self, source_kind: SourceKindVal) -> SourceKindId:
         """
         Returns the id of a source kind. Returns -1 if the kind doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM source_kind WHERE kind = %s"
-        cursor.execute(sql, (source_kind.value,))
-        source_kind_id = res[0] if (res := cursor.fetchone()) else -1
-        cursor.close()
-        return SourceKindId(source_kind_id)
+        response = (
+            self.connection.table("source_kind")
+            .select("id")
+            .eq("kind", source_kind.value)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return SourceKindId(-1)
+
+        return SourceKindId(response.data[0]["id"])
 
     def get_source_kind(
         self, source_kind_id: SourceKindId
@@ -117,18 +133,17 @@ class LexDbIntegrator:
         Returns a SourceKind object. Returns None if the kind doesn't
         exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM source_kind WHERE id = %s"
-        cursor.execute(sql, (source_kind_id,))
-
-        source_kind = (
-            parse_obj_as(SourceKind, {"id": res[0], "kind": res[1]})
-            if (res := cursor.fetchone())
-            else None
+        response = (
+            self.connection.table("source_kind")
+            .select("*")
+            .eq("id", source_kind_id)
+            .execute()
         )
 
-        cursor.close()
-        return source_kind
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(SourceKind, response.data[0])
 
     def add_source(self, source: Source) -> SourceId:
         """
@@ -138,18 +153,30 @@ class LexDbIntegrator:
         if not self.get_source_kind(source.source_kind_id):
             return SourceId(-1)
 
-        cursor = self.connection.cursor()
-        sql = (
-            "INSERT IGNORE INTO source (title, source_kind_id, author, lang)"
-            " VALUES (%s, %s, %s, %s)"
+        # Check if source exists first
+        existing_id = self.get_source_id(source.title, source.source_kind_id)
+        if existing_id != -1:
+            return existing_id
+
+        # Insert the new source
+        response = (
+            self.connection.table("source")
+            .insert(
+                {
+                    "title": source.title,
+                    "source_kind_id": source.source_kind_id,
+                    "author": source.author,
+                    "lang": source.lang,
+                    "removed_lemmata_num": 0,  # Default value
+                }
+            )
+            .execute()
         )
-        cursor.execute(
-            sql,
-            (source.title, source.source_kind_id, source.author, source.lang),
-        )
-        self.connection.commit()
-        cursor.close()
-        return self.get_source_id(source.title, source.source_kind_id)
+
+        if not response.data or len(response.data) == 0:
+            return SourceId(-1)
+
+        return SourceId(response.data[0]["id"])
 
     def get_source_id(
         self, title: str, source_kind_id: SourceKindId
@@ -157,41 +184,35 @@ class LexDbIntegrator:
         """
         Returns the id of a source. Returns -1 if the source doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT id FROM source WHERE title = %s AND source_kind_id = %s"
-        cursor.execute(sql, (title, source_kind_id))
-        source_id = res[0] if (res := cursor.fetchone()) else -1
-        cursor.close()
-        return SourceId(source_id)
+        response = (
+            self.connection.table("source")
+            .select("id")
+            .eq("title", title)
+            .eq("source_kind_id", source_kind_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return SourceId(-1)
+
+        return SourceId(response.data[0]["id"])
 
     def get_source(self, source_id: SourceId) -> Union[Source, None]:
         """
         Returns a Source object. Returns None if the source doesn't
         exist.
-
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM source WHERE id = %s"
-        cursor.execute(sql, (source_id,))
-
-        source = (
-            parse_obj_as(
-                Source,
-                {
-                    "id": res[0],
-                    "title": res[1],
-                    "source_kind_id": res[2],
-                    "author": res[3],
-                    "lang": res[4],
-                    "removed_lemmata_num": res[5],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
+        response = (
+            self.connection.table("source")
+            .select("*")
+            .eq("id", source_id)
+            .execute()
         )
 
-        cursor.close()
-        return source
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(Source, response.data[0])
 
     def get_paginated_sources(
         self,
@@ -205,86 +226,78 @@ class LexDbIntegrator:
         filter_params is an optional filter parameter which is a dict of
         {column_name: value} items.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM source"
+        query = self.connection.table("source").select("*")
+
+        # Apply any filters if provided
         if filter_params:
-            for i, param in enumerate(filter_params.items() or []):
-                sql += " WHERE" if i == 0 else " AND"
-                sql += f" {param[0]} = %s"
-        sql += " ORDER BY id LIMIT %s OFFSET %s"
+            for col_name, value in filter_params.items():
+                query = query.eq(col_name, value)
 
-        cursor.execute(
-            sql,
-            (
-                *list(filter_params.values() if filter_params else []),
-                page_size,
-                page_size * (page - 1),
-            ),
-        )
+        # Apply pagination
+        start = (page - 1) * page_size
+        end = start + page_size - 1
 
-        sources = [
-            parse_obj_as(
-                Source,
-                {
-                    "id": res[0],
-                    "title": res[1],
-                    "source_kind_id": res[2],
-                    "author": res[3],
-                    "lang": res[4],
-                    "removed_lemmata_num": res[5],
-                },
-            )
-            for res in cursor.fetchall()
-        ]
-        cursor.close()
-        return sources
+        response = query.order("id").range(start, end).execute()
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Source, item) for item in response.data]
 
     def add_status(self, status_val: StatusVal) -> StatusId:
         """
         Adds a new status to the database if it doesn't exist already.
         Returns -1 if invalid status.
         """
-        cursor = self.connection.cursor()
-        sql = "INSERT IGNORE INTO lemma_status (status) VALUES (%s)"
-        cursor.execute(sql, (status_val.value,))
-        self.connection.commit()
-        return self.get_status_id(status_val)
+        # Check if status exists first
+        existing_id = self.get_status_id(status_val)
+        if existing_id != -1:
+            return existing_id
+
+        # Insert new status
+        response = (
+            self.connection.table("lemma_status")
+            .insert({"status": status_val.value})
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return StatusId(-1)
+
+        return StatusId(response.data[0]["id"])
 
     def get_status_id(self, status_val: StatusVal) -> StatusId:
         """
         Returns the id of a status. Returns -1 if the status doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_status WHERE status = %s"
-        cursor.execute(sql, (status_val.value,))
-        if status := (
-            parse_obj_as(Status, {"id": res[0], "status": res[1]})
-            if (res := cursor.fetchone())
-            else None
-        ):
-            status_id = status.id
-        else:
-            status_id = StatusId(-1)
-        cursor.close()
-        return status_id
+        response = (
+            self.connection.table("lemma_status")
+            .select("id")
+            .eq("status", status_val.value)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return StatusId(-1)
+
+        return StatusId(response.data[0]["id"])
 
     def get_status_by_id(self, status_id: StatusId) -> Union[Status, None]:
         """
         Returns the status of a lemma. Returns None if the status doesn't
         exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_status WHERE id = %s"
-        cursor.execute(sql, (status_id,))
-
-        status = (
-            Status(id=res[0][0], status=res[0][1])
-            if (res := cursor.fetchall())
-            else None
+        response = (
+            self.connection.table("lemma_status")
+            .select("*")
+            .eq("id", status_id)
+            .execute()
         )
 
-        cursor.close()
-        return status
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(Status, response.data[0])
 
     def add_lemma(self, lemma: Lemma) -> LemmaId:
         """
@@ -300,18 +313,23 @@ class LexDbIntegrator:
         if not self.get_source(lemma.found_in_source):
             return LemmaId(-1)
 
-        cursor = self.connection.cursor()
-        sql = (
-            "INSERT INTO lemma (lemma, status_id, found_in_source) VALUES (%s,"
-            " %s, %s)"
+        # Insert new lemma using Supabase
+        response = (
+            self.connection.table("lemma")
+            .insert(
+                {
+                    "lemma": lemma.lemma,
+                    "status_id": lemma.status_id,
+                    "found_in_source": lemma.found_in_source,
+                }
+            )
+            .execute()
         )
-        cursor.execute(
-            sql, (lemma.lemma, lemma.status_id, lemma.found_in_source)
-        )
-        self.connection.commit()
-        lemma_id = self.get_lemma_id(lemma.lemma)
-        cursor.close()
-        return lemma_id
+
+        if not response.data or len(response.data) == 0:
+            return LemmaId(-1)
+
+        return LemmaId(response.data[0]["id"])
 
     def bulk_add_lemma(
         self,
@@ -319,92 +337,90 @@ class LexDbIntegrator:
         status_id: StatusId,
         found_in_source: SourceId,
     ) -> dict[str, LemmaId]:
-        """ """
+        """
+        Bulk adds lemmata. Skips those that are already in the database.
+        Returns map of lemma->id
+        """
+        # Verify status exists
         if not self.get_status_by_id(status_id):
             return {}
 
+        # Verify source exists
         if not self.get_source(found_in_source):
             return {}
 
-        lemmata_values = list(OrderedDict.fromkeys(lemmata_values))
+        result = {}
+        remaining_lemmata = []
 
-        already_in_db = self.bulk_get_lemma_id_dict(lemmata_values)
+        # Check which lemmata already exist
+        for lemma in lemmata_values:
+            lemma_id = self.get_lemma_id(lemma)
+            if lemma_id != -1:
+                result[lemma] = lemma_id
+            else:
+                remaining_lemmata.append(lemma)
 
-        to_push = list(
-            filter(
-                lambda lemma_val: lemma_val not in already_in_db.keys(),
-                lemmata_values,
+        # Insert new lemmata in batches if any remain
+        if remaining_lemmata:
+            # Prepare batch data for insert
+            insert_data = [
+                {
+                    "lemma": lemma,
+                    "status_id": status_id,
+                    "found_in_source": found_in_source,
+                }
+                for lemma in remaining_lemmata
+            ]
+
+            # Batch insert using Supabase
+            response = (
+                self.connection.table("lemma").insert(insert_data).execute()
             )
-        )
 
-        if not to_push:
-            return already_in_db
+            if response.data:
+                # Map the inserted lemmata to their new IDs
+                for item in response.data:
+                    result[item["lemma"]] = item["id"]
 
-        sql = (
-            "INSERT INTO lemma (lemma, status_id, found_in_source)"
-            " VALUES (%s, %s, %s)"
-        )
-
-        query_data = [
-            (lemma_val, status_id, found_in_source) for lemma_val in to_push
-        ]
-
-        cursor = self.connection.cursor()
-        cursor.executemany(sql, query_data)
-        self.connection.commit()
-
-        lemma_id_dict = self.bulk_get_lemma_id_dict(lemmata_values)
-
-        cursor.close()
-
-        return lemma_id_dict
+        return result
 
     def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
         """
         Returns a lemma. Returns None if the lemma doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma WHERE id = %s LIMIT 1"
-        cursor.execute(sql, (lemma_id,))
-
-        lemma = (
-            parse_obj_as(
-                Lemma,
-                {
-                    "id": res[0],
-                    "lemma": res[1],
-                    "created": res[2],
-                    "status_id": res[3],
-                    "found_in_source": res[4],
-                },
-            )
-            if (res := (cursor.fetchall() or [[]])[0])
-            else None
+        response = (
+            self.connection.table("lemma")
+            .select("*")
+            .eq("id", lemma_id)
+            .execute()
         )
-        cursor.close()
-        return lemma
+
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(Lemma, response.data[0])
 
     def bulk_get_lemmata(self, lemma_ids: list[LemmaId]) -> list[Lemma]:
+        """
+        Retrieve multiple lemmata by their IDs
+        """
+        if not lemma_ids:
+            return []
+
         lemma_ids = list(OrderedDict.fromkeys(lemma_ids))
-        cursor = self.connection.cursor()
-        sql = (
-            "SELECT * FROM lemma WHERE id IN ("
-            + ",".join(["%s"] * len(lemma_ids))
-            + ")"
+
+        # Using Supabase's .in_() filter to get multiple lemmata at once
+        response = (
+            self.connection.table("lemma")
+            .select("*")
+            .in_("id", lemma_ids)
+            .execute()
         )
-        cursor.execute(sql, lemma_ids)
-        lemmata = [
-            Lemma(
-                id=row[0],
-                lemma=row[1],
-                created=row[2],
-                status_id=row[3],
-                found_in_source=row[4],
-            )
-            for row in cursor.fetchall() or []
-        ]
-        cursor.close()
-        return lemmata
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Lemma, item) for item in response.data]
 
     def get_status_lemma_rows(
         self,
@@ -412,28 +428,29 @@ class LexDbIntegrator:
         page: int = 1,
         page_size: int = 100,
     ) -> list[Lemma]:
+        """
+        Returns a list of all lemmata with the given status.
+        """
         status_id = self.get_status_id(status_val)
-        cursor = self.connection.cursor()
 
-        if page and page_size:
-            limit = page_size
-            offset = (page - 1) * page_size
-            sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
-            cursor.execute(sql, (status_id, limit, offset))
-        else:
-            sql = "SELECT * FROM lemma WHERE status_id = %s"
-            cursor.execute(sql, (status_id,))
+        # Set up pagination
+        start = (page - 1) * page_size
+        end = start + page_size - 1
 
-        return [
-            Lemma(
-                id=row[0],
-                lemma=row[1],
-                created=row[2],
-                status_id=row[3],
-                found_in_source=row[4],
-            )
-            for row in cursor.fetchall()
-        ]
+        # Query for lemmata with the given status
+        response = (
+            self.connection.table("lemma")
+            .select("*")
+            .eq("status_id", status_id)
+            .order("id")
+            .range(start, end)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Lemma, item) for item in response.data]
 
     def get_status_lemma_rows_table(
         self,
@@ -441,60 +458,91 @@ class LexDbIntegrator:
         page: int = 1,
         page_size: int = 100,
     ) -> str:
+        """
+        Returns a tabulated string representation of all lemmata with the
+        given status.
+        """
         status_id = self.get_status_id(status_val)
-        cursor = self.connection.cursor()
 
-        if page and page_size:
-            limit = page_size
-            offset = (page - 1) * page_size
-            sql = "SELECT * FROM lemma WHERE status_id = %s LIMIT %s OFFSET %s"
-            cursor.execute(sql, (status_id, limit, offset))
-        else:
-            sql = "SELECT * FROM lemma WHERE status_id = %s"
-            cursor.execute(sql, (status_id,))
+        # Set up pagination
+        start = (page - 1) * page_size
+        end = start + page_size - 1
 
-        rows = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
+        # Query for lemmata with the given status
+        response = (
+            self.connection.table("lemma")
+            .select("*")
+            .eq("status_id", status_id)
+            .order("id")
+            .range(start, end)
+            .execute()
+        )
+
+        if not response.data:
+            return "No data found"
+
+        # Convert to tabular format
+        columns = list(response.data[0].keys())
+        rows = [[item[col] for col in columns] for item in response.data]
         return tabulate(rows, headers=columns)
 
     def get_lemma_id(self, lemma_value: str) -> LemmaId:
         """
         Returns the id of a lemma. Returns -1 if the lemma doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT id FROM lemma WHERE lemma = %s"
-        cursor.execute(sql, (lemma_value,))
-        lemma_id = (
-            LemmaId(res[0][0]) if (res := cursor.fetchall()) else LemmaId(-1)
+        response = (
+            self.connection.table("lemma")
+            .select("id")
+            .eq("lemma", lemma_value)
+            .execute()
         )
 
-        cursor.close()
-        return lemma_id
+        if not response.data or len(response.data) == 0:
+            return LemmaId(-1)
+
+        return LemmaId(response.data[0]["id"])
 
     def bulk_get_lemma_id_dict(
         self, lemmata_values: list[str]
     ) -> dict[str, LemmaId]:
-        cursor = self.connection.cursor()
-        sql = (
-            "SELECT id, lemma FROM lemma WHERE lemma IN ("
-            + ",".join(["%s"] * len(lemmata_values))
-            + ")"
+        """
+        Returns a dictionary mapping lemma values to their IDs
+        """
+        if not lemmata_values:
+            return {}
+
+        # Using Supabase's .in_() filter to get multiple lemmata at once
+        response = (
+            self.connection.table("lemma")
+            .select("id, lemma")
+            .in_("lemma", lemmata_values)
+            .execute()
         )
-        cursor.execute(sql, lemmata_values)
-        lemma_val_id_dict = {
-            res[1]: LemmaId(res[0]) for res in cursor.fetchall() or []
-        }
-        cursor.close()
-        return lemma_val_id_dict
+
+        if not response.data:
+            return {}
+
+        # Map lemma values to IDs
+        return {item["lemma"]: LemmaId(item["id"]) for item in response.data}
 
     def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
         """
         Returns the status of a lemma. Returns None if the lemma id is invalid
         """
-        if lemma := self.get_lemma(lemma_id):
-            return self.get_status_by_id(lemma.status_id)
-        else:
+        # First get the lemma to find its status_id
+        response = (
+            self.connection.table("lemma")
+            .select("status_id")
+            .eq("id", lemma_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
             return None
+
+        # Then get the status using the status_id
+        status_id = response.data[0]["status_id"]
+        return self.get_status_by_id(status_id)
 
     def add_lemma_source_relation(
         self, lemma_source_relation: LemmaSourceRelation
@@ -508,58 +556,76 @@ class LexDbIntegrator:
         ) or not self.get_source(lemma_source_relation.source_id):
             return False
 
-        cursor = self.connection.cursor()
-        sql = "INSERT INTO lemma_source (lemma_id, source_id) VALUES (%s, %s)"
-        cursor.execute(
-            sql,
-            (lemma_source_relation.lemma_id, lemma_source_relation.source_id),
+        # Insert new relation using Supabase
+        response = (
+            self.connection.table("lemma_source")
+            .insert(
+                {
+                    "lemma_id": lemma_source_relation.lemma_id,
+                    "source_id": lemma_source_relation.source_id,
+                }
+            )
+            .execute()
         )
-        self.connection.commit()
-        cursor.close()
-        return True
+
+        return response.data is not None and len(response.data) > 0
 
     def bulk_add_lemma_source_relations(
         self, rels: list[LemmaSourceRelation]
     ) -> bool:
+        """
+        Add multiple lemma-source relations at once
+        """
         if not rels:
             return False
 
-        if not self.get_source(source_id := rels[0].source_id):
+        if not self.get_source(rels[0].source_id):
             return False
 
+        # Remove duplicates
         rels = [rel for i, rel in enumerate(rels) if rel not in rels[i + 1 :]]
 
-        if not self._all_lemmata_exist(
-            lemma_ids := [rel.lemma_id for rel in rels]
-        ):
+        if not self._all_lemmata_exist([rel.lemma_id for rel in rels]):
             return False
 
-        query_data = [(lid, source_id) for lid in lemma_ids]
-        cursor = self.connection.cursor()
-        sql = "INSERT INTO lemma_source (lemma_id, source_id) VALUES (%s, %s)"
-        cursor.executemany(sql, query_data)
-        self.connection.commit()
-        cursor.close()
-        return True
+        # Prepare data for bulk insert
+        insert_data = [
+            {"lemma_id": rel.lemma_id, "source_id": rel.source_id}
+            for rel in rels
+        ]
+
+        # Batch insert using Supabase
+        response = (
+            self.connection.table("lemma_source").insert(insert_data).execute()
+        )
+
+        return response.data is not None and len(response.data) > 0
 
     def get_lemma_sources(self, lemma_id: LemmaId) -> list[Source]:
         """
         Returns all sources in which a lemma appears in.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT source_id FROM lemma_source WHERE lemma_id = %s"
-        cursor.execute(sql, (lemma_id,))
-        source_ids = [
-            SourceId(source_id[0]) for source_id in cursor.fetchall() or []
-        ]
-        cursor.close()
-        return [
-            source
-            for source in (
-                self.get_source(source_id) for source_id in source_ids
-            )
-            if source
-        ]
+        # First get source IDs from lemma_source table
+        response = (
+            self.connection.table("lemma_source")
+            .select("source_id")
+            .eq("lemma_id", lemma_id)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        # Extract unique source IDs
+        source_ids = [SourceId(item["source_id"]) for item in response.data]
+
+        # Get all sources using these IDs
+        sources = []
+        for source_id in source_ids:
+            if source := self.get_source(source_id):
+                sources.append(source)
+
+        return sources
 
     def get_lemma_source_relation_ids(
         self,
@@ -569,33 +635,27 @@ class LexDbIntegrator:
     ) -> list[LemmaSourceId]:
         """
         Returns the ids of all lemma-source relations.
-        NOTE: this is a very expensive db operation.
         """
-        cursor = self.connection.cursor()
+        query = (
+            self.connection.table("lemma_source")
+            .select("id")
+            .eq("lemma_id", lemma_id)
+            .eq("source_id", source_id)
+            .order("id", desc=True)
+        )
 
+        # Apply limit if provided
         if limit is not None:
-            sql = (
-                "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
-                " = %s ORDER BY id DESC LIMIT %s"
-            )
-            cursor.execute(sql, (lemma_id, source_id, limit))
-            ids = [
-                LemmaSourceId(lemma_id[0]) for lemma_id in cursor.fetchall()
-            ]
-        else:
-            sql = (
-                "SELECT id FROM lemma_source WHERE lemma_id = %s AND source_id"
-                " = %s"
-            )
-            cursor.execute(sql, (lemma_id, source_id))
-            ids = [
-                LemmaSourceId(lemma_id[0])
-                for lemma_id in cursor.fetchall() or []
-            ]
-        cursor.close()
-        return ids
+            query = query.limit(limit)
 
-    def add_context(self, context: Context) -> ContextId:  # noqa: F821
+        response = query.execute()
+
+        if not response.data:
+            return []
+
+        return [LemmaSourceId(item["id"]) for item in response.data]
+
+    def add_context(self, context: Context) -> ContextId:
         """
         Adds a new context to the database if it doesn't exist already.
         Returns -1 if the source doesn't exist.
@@ -607,6 +667,7 @@ class LexDbIntegrator:
             )
             return ContextId(-1)
 
+        # Check if context exists first
         if (
             context_id := self.get_context_id(
                 context.context_value, context.source_id
@@ -614,66 +675,61 @@ class LexDbIntegrator:
         ) != -1:
             return context_id
 
-        cursor = self.connection.cursor()
-        sql = "INSERT INTO context (context_value, source_id) VALUES (%s, %s)"
-        cursor.execute(sql, (context.context_value, context.source_id))
-        self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        ctid = ContextId(cursor.fetchall()[0][0])
-        if ctid == 0:
-            ctid = self.get_context_id(
-                context.context_value, context.source_id
+        # Insert new context using Supabase
+        response = (
+            self.connection.table("context")
+            .insert(
+                {
+                    "context_value": context.context_value,
+                    "source_id": context.source_id,
+                }
             )
-        cursor.close()
-        return ctid
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return ContextId(-1)
+
+        return ContextId(response.data[0]["id"])
 
     def get_context(self, context_id: ContextId) -> Union[Context, None]:
         """
         Returns a context. Returns None if the context doesn't
         exist.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM context WHERE id = %s"
-        cursor.execute(sql, (context_id,))
-        context = (
-            parse_obj_as(
-                Context,
-                {
-                    "id": res[0],
-                    "context_value": res[1],
-                    "created": res[2],
-                    "source_id": res[3],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
+        response = (
+            self.connection.table("context")
+            .select("*")
+            .eq("id", context_id)
+            .execute()
         )
-        cursor.close()
-        return context
+
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(Context, response.data[0])
 
     def bulk_get_contexts(self, cids: list[ContextId]) -> list[Context]:
+        """
+        Get multiple contexts by their IDs
+        """
+        if not cids:
+            return []
+
         cids = list(OrderedDict.fromkeys(cids))
-        sql = (
-            "SELECT * FROM context WHERE id IN ("
-            + ",".join(["%s"] * len(cids))
-            + ")"
+
+        # Using Supabase's in_ filter to retrieve multiple contexts at once
+        response = (
+            self.connection.table("context")
+            .select("*")
+            .in_("id", cids)
+            .execute()
         )
-        cursor = self.connection.cursor()
-        cursor.execute(sql, cids)
-        contexts = [
-            parse_obj_as(
-                Context,
-                {
-                    "id": res[0],
-                    "context_value": res[1],
-                    "created": res[2],
-                    "source_id": res[3],
-                },
-            )
-            for res in cursor.fetchall() or []
-        ]
-        cursor.close()
-        return contexts
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Context, item) for item in response.data]
 
     def get_paginated_contexts(
         self, page: int, page_size: int
@@ -681,50 +737,48 @@ class LexDbIntegrator:
         """
         Returns a list of contexts.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM context ORDER BY id LIMIT %s OFFSET %s"
-        cursor.execute(sql, (page_size, page_size * (page - 1)))
-        contexts = [
-            parse_obj_as(
-                Context,
-                {
-                    "id": res[0],
-                    "context_value": res[1],
-                    "created": res[2],
-                    "source_id": res[3],
-                },
-            )
-            for res in cursor.fetchall()
-        ]
-        cursor.close()
-        return contexts
+        # Set up pagination
+        start = (page - 1) * page_size
+        end = start + page_size - 1
+
+        # Query using Supabase
+        response = (
+            self.connection.table("context")
+            .select("*")
+            .order("id")
+            .range(start, end)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Context, item) for item in response.data]
 
     def get_paginated_source_contexts(
         self, source_id: SourceId, page: int, page_size: int
     ) -> list[Context]:
         """
-        Returns a list of contexts.
+        Returns a list of contexts from a specific source with pagination.
         """
-        cursor = self.connection.cursor()
-        sql = (
-            "SELECT * FROM context WHERE source_id = %s ORDER BY id LIMIT %s"
-            " OFFSET %s"
+        # Set up pagination
+        start = (page - 1) * page_size
+        end = start + page_size - 1
+
+        # Query using Supabase
+        response = (
+            self.connection.table("context")
+            .select("*")
+            .eq("source_id", source_id)
+            .order("id")
+            .range(start, end)
+            .execute()
         )
-        cursor.execute(sql, (source_id, page_size, page_size * (page - 1)))
-        contexts = [
-            parse_obj_as(
-                Context,
-                {
-                    "id": res[0],
-                    "context_value": res[1],
-                    "created": res[2],
-                    "source_id": res[3],
-                },
-            )
-            for res in cursor.fetchall()
-        ]
-        cursor.close()
-        return contexts
+
+        if not response.data:
+            return []
+
+        return [parse_obj_as(Context, item) for item in response.data]
 
     def get_context_id(
         self, context_value: str, source_id: SourceId
@@ -732,26 +786,19 @@ class LexDbIntegrator:
         """
         Returns the id of a context. Returns -1 if the context doesn't exist.
         """
-        cursor = self.connection.cursor()
-        sql = (
-            "SELECT * FROM context WHERE context_value = %s AND source_id = %s"
+        # Using Supabase to query for context
+        response = (
+            self.connection.table("context")
+            .select("id")
+            .eq("context_value", context_value)
+            .eq("source_id", source_id)
+            .execute()
         )
-        cursor.execute(sql, (context_value, source_id))
-        context = (
-            parse_obj_as(
-                Context,
-                {
-                    "id": res[0],
-                    "context_value": res[1],
-                    "created": res[2],
-                    "source_id": res[3],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
-        )
-        cursor.close()
-        return context.id if context else ContextId(-1)
+
+        if not response.data or len(response.data) == 0:
+            return ContextId(-1)
+
+        return ContextId(response.data[0]["id"])
 
     def add_lemma_context_relation(
         self,
@@ -766,55 +813,63 @@ class LexDbIntegrator:
         ):
             return LemmaContextId(-1)
 
-        cursor = self.connection.cursor()
-        sql = (
-            "INSERT INTO lemma_context (lemma_id, context_id, upos_tag,"
-            " detailed_tag) VALUES (%s, %s, %s, %s)"
+        # Insert using Supabase
+        response = (
+            self.connection.table("lemma_context")
+            .insert(
+                {
+                    "lemma_id": lemma_context.lemma_id,
+                    "context_id": lemma_context.context_id,
+                    "upos_tag": lemma_context.upos_tag.value,
+                    "detailed_tag": lemma_context.detailed_tag,
+                }
+            )
+            .execute()
         )
 
-        keys_to_exclude = {"id"}
-        d = lemma_context.dict(exclude=keys_to_exclude)
-        d.update({"upos_tag": lemma_context.upos_tag.value})
+        if not response.data or len(response.data) == 0:
+            return LemmaContextId(-1)
 
-        cursor.execute(
-            sql,
-            (*d.values(),),
-        )
-        self.connection.commit()
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        lcid = LemmaContextId(cursor.fetchall()[0][0])
-        cursor.close()
-        return lcid
+        return LemmaContextId(response.data[0]["id"])
 
     def bulk_add_lemma_context_relations(
         self, rels: list[LemmaContextRelation]
     ) -> bool:
-        """ """
+        """
+        Add multiple lemma-context relations at once
+        """
+        if not rels:
+            return False
+
         if not self._all_lemmata_exist([rel.lemma_id for rel in rels]):
             return False
 
         if not self._all_contexts_exist([rel.context_id for rel in rels]):
             return False
 
+        # Remove duplicates
         rels = [rel for i, rel in enumerate(rels) if rel not in rels[i + 1 :]]
 
-        keys_to_exclude = {"id"}
-        query_data = []
+        # Prepare data for bulk insert
+        insert_data = []
         for rel in rels:
-            d = rel.dict(exclude=keys_to_exclude)
-            d.update({"upos_tag": rel.upos_tag.value})
-            query_data.append(list(d.values()))
+            insert_data.append(
+                {
+                    "lemma_id": rel.lemma_id,
+                    "context_id": rel.context_id,
+                    "upos_tag": rel.upos_tag.value,
+                    "detailed_tag": rel.detailed_tag,
+                }
+            )
 
-        sql = (
-            "INSERT INTO lemma_context (lemma_id, context_id, upos_tag,"
-            " detailed_tag) VALUES (%s, %s, %s, %s)"
+        # Batch insert using Supabase
+        response = (
+            self.connection.table("lemma_context")
+            .insert(insert_data)
+            .execute()
         )
 
-        cursor = self.connection.cursor()
-        cursor.executemany(sql, query_data)
-        self.connection.commit()
-        cursor.close()
-        return True
+        return response.data is not None and len(response.data) > 0
 
     def get_lemma_context_relation(
         self, lemma_context_id: LemmaContextId
@@ -822,25 +877,19 @@ class LexDbIntegrator:
         """
         Returns a lemma-context relation.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_context WHERE id = %s"
-        cursor.execute(sql, (lemma_context_id,))
-        lemma_context = (
-            parse_obj_as(
-                LemmaContextRelation,
-                {
-                    "id": res[0],
-                    "lemma_id": res[1],
-                    "context_id": res[2],
-                    "upos_tag": res[3],
-                    "detailed_tag": res[4],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
+        response = (
+            self.connection.table("lemma_context")
+            .select("*")
+            .eq("id", lemma_context_id)
+            .execute()
         )
-        cursor.close()
-        return lemma_context
+
+        if not response.data or len(response.data) == 0:
+            return None
+
+        # Convert upos_tag string value to UposTag enum
+        result_data = response.data[0]
+        return parse_obj_as(LemmaContextRelation, result_data)
 
     def get_lemma_contexts(
         self, lemma_id: LemmaId, page: int, page_size: int
@@ -848,48 +897,41 @@ class LexDbIntegrator:
         """
         Returns all contexts a lemma appears in.
         """
-        cursor = self.connection.cursor()
+        # Calculate pagination limits
         limit = page_size
         offset = (page - 1) * page_size
 
-        sql = (
-            "SELECT * FROM lemma_context WHERE lemma_id = %s ORDER BY"
-            " context_id LIMIT %s OFFSET %s"
-        )
-        cursor.execute(
-            sql,
-            (
-                lemma_id,
-                limit,
-                offset,
-            ),
+        # First get context_ids from lemma_context table
+        response = (
+            self.connection.table("lemma_context")
+            .select("context_id")
+            .eq("lemma_id", lemma_id)
+            .order("context_id")
+            .range(offset, offset + limit - 1)
+            .execute()
         )
 
-        context_ids = sorted(
-            {
-                parse_obj_as(
-                    LemmaContextRelation,
-                    {
-                        "id": res[0],
-                        "lemma_id": res[1],
-                        "context_id": res[2],
-                        "upos_tag": res[3],
-                        "detailed_tag": res[4],
-                    },
-                ).context_id
-                for res in cursor.fetchall()
-            }
+        if not response.data:
+            return []
+
+        # Extract unique context IDs
+        context_ids = sorted({item["context_id"] for item in response.data})
+
+        # Now fetch the actual contexts
+        if not context_ids:
+            return []
+
+        contexts_response = (
+            self.connection.table("context")
+            .select("*")
+            .in_("id", context_ids)
+            .execute()
         )
 
-        # TODO bulk retrieve contexts
-        # TODO or just join the tables
-        return [
-            context
-            for context in (
-                self.get_context(context_id) for context_id in context_ids
-            )
-            if context is not None
-        ]
+        if not contexts_response.data:
+            return []
+
+        return [parse_obj_as(Context, item) for item in contexts_response.data]
 
     def get_lemma_context_relations(
         self, lemma_context: LemmaContextRelation
@@ -899,58 +941,47 @@ class LexDbIntegrator:
         Returns -1 if the relation doesn't exist.
         lemma_context.id of arg is ignored.
         """
-        cursor = self.connection.cursor()
-        sql = (
-            "SELECT * FROM lemma_context WHERE lemma_id = %s AND"
-            " context_id = %s AND upos_tag = %s AND detailed_tag = %s"
-        )
-
+        # Filter out id field from query parameters
         keys_to_exclude = {"id"}
         d = lemma_context.dict(exclude=keys_to_exclude)
-        d.update({"upos_tag": lemma_context.upos_tag.value})
 
-        cursor.execute(
-            sql,
-            (*d.values(),),
+        # Query using Supabase
+        query = (
+            self.connection.table("lemma_context")
+            .select("*")
+            .eq("lemma_id", d["lemma_id"])
+            .eq("context_id", d["context_id"])
+            .eq("upos_tag", lemma_context.upos_tag.value)
         )
 
-        lemma_context_relations = [
-            parse_obj_as(
-                LemmaContextRelation,
-                {
-                    "id": res[0],
-                    "lemma_id": res[1],
-                    "context_id": res[2],
-                    "upos_tag": res[3],
-                    "detailed_tag": res[4],
-                },
-            )
-            for res in cursor.fetchall()
-        ]
+        if d.get("detailed_tag"):
+            query = query.eq("detailed_tag", d["detailed_tag"])
 
-        cursor.close()
-        return lemma_context_relations
+        response = query.execute()
+
+        if not response.data:
+            return []
+
+        return [
+            parse_obj_as(LemmaContextRelation, item) for item in response.data
+        ]
 
     def get_status(self, status_id: StatusId) -> Union[Status, None]:
         """
         Returns a status.
         """
-        cursor = self.connection.cursor()
-        sql = "SELECT * FROM lemma_status WHERE id = %s"
-        cursor.execute(sql, (status_id,))
-        status = (
-            parse_obj_as(
-                Status,
-                {
-                    "id": res[0],
-                    "status": res[1],
-                },
-            )
-            if (res := cursor.fetchone())
-            else None
+        # This is the same as get_status_by_id, using Supabase
+        response = (
+            self.connection.table("lemma_status")
+            .select("*")
+            .eq("id", status_id)
+            .execute()
         )
-        cursor.close()
-        return status
+
+        if not response.data or len(response.data) == 0:
+            return None
+
+        return parse_obj_as(Status, response.data[0])
 
     def update_lemmata_status(
         self, lemma_ids: list[LemmaId], new_status_id: StatusId
@@ -959,9 +990,11 @@ class LexDbIntegrator:
         Changes the status of all lemmata in the list.
         Doesn't update any of them if one of the ids doesn't exist.
         """
-        if self.get_status(new_status_id) == -1:
+        # Verify new status exists
+        if not self.get_status_by_id(new_status_id):
             return False
 
+        # Verify all lemma IDs exist
         for lid in lemma_ids:
             if not self.get_lemma(lid):
                 return False
@@ -969,18 +1002,22 @@ class LexDbIntegrator:
                 if s.id == new_status_id:
                     return False
 
-        cursor = self.connection.cursor()
-        sql = (
-            "UPDATE lemma SET status_id = %s WHERE id IN"
-            f" ({','.join(map(str, lemma_ids))})"
+        # Update using Supabase
+        response = (
+            self.connection.table("lemma")
+            .update({"status_id": new_status_id})
+            .in_("id", lemma_ids)
+            .execute()
         )
-        cursor.execute(sql, (new_status_id,))
-        self.connection.commit()
-        cursor.close()
-        if s := self.get_lemma_status(lemma_ids.pop()):
-            return s.id == new_status_id
-        else:
+
+        if not response.data or len(response.data) == 0:
             return False
+
+        # Verify update was successful
+        if lemma_ids:
+            status = self.get_lemma_status(lemma_ids[0])
+            return status is not None and status.id == new_status_id
+        return True
 
     def update_lemma_context_relation(
         self,
@@ -992,34 +1029,33 @@ class LexDbIntegrator:
         Changes the upos tag of a lemma-context relation.
         TODO: instead of having two optional args, overload this function
         """
+        # Check if relation exists
         if not self.get_lemma_context_relation(lemma_context_id):
             return False
 
-        cursor = self.connection.cursor()
-
-        args: Any
+        # Nothing to update
         if new_upos_tag is None and new_detailed_tag is None:
             return False
-        elif new_upos_tag is not None and new_detailed_tag is None:
-            sql = "UPDATE lemma_context SET upos_tag = %s WHERE id = %s"
-            args = (new_upos_tag.value, lemma_context_id)
-        elif new_upos_tag is None:
-            sql = "UPDATE lemma_context SET detailed_tag = %s WHERE id = %s"
-            args = (new_detailed_tag, lemma_context_id)
-        else:
-            sql = (
-                "UPDATE lemma_context SET upos_tag = %s, detailed_tag = %s"
-                " WHERE id = %s"
-            )
-            args = (
-                new_upos_tag.value,
-                new_detailed_tag,
-                lemma_context_id,
-            )
 
-        cursor.execute(sql, args)
-        self.connection.commit()
-        cursor.close()
+        # Prepare update data
+        update_data = {}
+        if new_upos_tag is not None:
+            update_data["upos_tag"] = new_upos_tag.value
+        if new_detailed_tag is not None:
+            update_data["detailed_tag"] = new_detailed_tag
+
+        # Update using Supabase
+        response = (
+            self.connection.table("lemma_context")
+            .update(update_data)
+            .eq("id", lemma_context_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            return False
+
+        # Verify update was successful
         lemma_context = self.get_lemma_context_relation(lemma_context_id)
         v1 = lemma_context is not None
         v2 = (
@@ -1032,6 +1068,7 @@ class LexDbIntegrator:
             if lemma_context and new_detailed_tag
             else True
         )
+
         return v1 and v2 and v3
 
     def delete_lemma(self, lemma_id: LemmaId) -> bool:
@@ -1041,186 +1078,214 @@ class LexDbIntegrator:
         Keeps source and contexts even if they were only associated with
         the deleted lemma.
         """
-        if not self.get_lemma(lemma_id):
+        # Check if lemma exists
+        lemma = self.get_lemma(lemma_id)
+        if not lemma:
             return False
 
-        cursor = self.connection.cursor()
+        # Get the found_in_source of the lemma before deleting
+        found_in_source = lemma.found_in_source
 
-        # get all source ids associated with the lemma from lemma_source:
-        # sql = "SELECT source_id FROM lemma_source WHERE lemma_id = %s"
-        # cursor.execute(sql, (lemma_id,))
-        # source_ids = {t[0] for t in cursor.fetchall() or []}
-
-        # delete all entries in lemma_source with the lemma id:
-        sql = "DELETE FROM lemma_source WHERE lemma_id = %s"
-        cursor.execute(sql, (lemma_id,))
-        self.connection.commit()
-
-        # for all source_ids, check if there are still entries in the
-        # lemma_source table:
-        # for source_id in source_ids:  # NOTE: this is already [(sid,),...]
-        #     cursor.execute(
-        #         "SELECT id FROM lemma_source WHERE source_id = %s LIMIT 1",
-        #         (source_id,),
-        #     )
-        #     if not cursor.fetchall():
-        #         cursor.execute(
-        #             "DELETE FROM source WHERE id = %s", (source_id,)
-        #         )
-        #         self.connection.commit()
-
-        # get the found_in_value of the lemma:
-        cursor.execute(
-            "SELECT found_in_source FROM lemma WHERE id = %s LIMIT 1",
-            (lemma_id,),
+        # Get all context IDs associated with the lemma from lemma_context
+        response = (
+            self.connection.table("lemma_context")
+            .select("context_id")
+            .eq("lemma_id", lemma_id)
+            .execute()
         )
-        found_in_source = cursor.fetchall()[0][0]
+        context_ids = {
+            ContextId(item["context_id"]) for item in response.data or []
+        }
 
-        # increase the removed_lemmata_num of the source, if it still exists:
-        if source := self.get_source(found_in_source):
-            cursor.execute(
-                "UPDATE source SET removed_lemmata_num = %s WHERE id = %s",
-                (source.removed_lemmata_num + 1, found_in_source),
-            )
-            self.connection.commit()
-
-        # get all context ids associated with the lemma from lemma_context:
-        sql = "SELECT context_id FROM lemma_context WHERE lemma_id = %s"
-        cursor.execute(sql, (lemma_id,))
-        context_ids = {t[0] for t in cursor.fetchall() or []}
-
-        # delete all entries in lemma_context with the lemma id:
-        sql = "DELETE FROM lemma_context WHERE lemma_id = %s"
-        cursor.execute(sql, (lemma_id,))
-        self.connection.commit()
-
-        # for each contextID, check if there are still entries in the
-        # lemma_context table, if not delete from context table rows
-        # with same contextID
-        # kept_context_ids = set()
-        # for context_id in context_ids:
-        #     cursor.execute(
-        #         "SELECT id FROM lemma_context WHERE context_id = %s LIMIT 1",
-        #         (context_id,),
-        #     )
-        #     if not cursor.fetchall():
-        #         cursor.execute(
-        #             "DELETE FROM context WHERE id = %s", (context_id,)
-        #         )
-        #         self.connection.commit()
-        #     else:
-        #         kept_context_ids.add(context_id)
-
-        # for each kept context id, get context_value and remove lemma id
-        # from it
+        # For each context ID, update the context_value to remove this
+        # lemma_id references
         for context_id in context_ids:
-            cursor.execute(
-                "SELECT context_value FROM context WHERE id = %s LIMIT 1",
-                (context_id,),
+            # First get the context value
+            context_response = (
+                self.connection.table("context")
+                .select("context_value")
+                .eq("id", context_id)
+                .execute()
             )
-            context_value = cursor.fetchall()[0][0]
-            context_value = re.sub(
-                rf"(::{lemma_id})(\D)", r"\g<2>", context_value
-            )
-            cursor.execute(
-                "UPDATE context SET context_value = %s WHERE id = %s",
-                (context_value, context_id),
-            )
-            self.connection.commit()
+            if context_response.data and len(context_response.data) > 0:
+                context_value = context_response.data[0]["context_value"]
+                # Remove lemma_id references using regex
+                updated_context_value = re.sub(
+                    rf"(::{lemma_id})(\D)", r"\g<2>", context_value
+                )
+                # Update the context value
+                self.connection.table("context").update(
+                    {"context_value": updated_context_value}
+                ).eq("id", context_id).execute()
 
-        # finally, delete the lemma from the lemma table:
-        sql = "DELETE FROM lemma WHERE id = %s"
-        cursor.execute(sql, (lemma_id,))
-        self.connection.commit()
+        # Delete all entries in lemma_context with this lemma_id
+        self.connection.table("lemma_context").delete().eq(
+            "lemma_id", lemma_id
+        ).execute()
 
-        cursor.close()
-        return not self.get_lemma(lemma_id)
+        # Delete all entries in lemma_source with this lemma_id
+        self.connection.table("lemma_source").delete().eq(
+            "lemma_id", lemma_id
+        ).execute()
+
+        # If the source exists, increase its removed_lemmata_num counter
+        source = self.get_source(found_in_source)
+        if source:
+            self.connection.table("source").update(
+                {"removed_lemmata_num": source.removed_lemmata_num + 1}
+            ).eq("id", found_in_source).execute()
+
+        # Finally delete the lemma itself
+        self.connection.table("lemma").delete().eq("id", lemma_id).execute()
+
+        # Verify deletion was successful
+        return self.get_lemma(lemma_id) is None
 
     def bulk_delete_lemmata(self, lemma_ids: set[LemmaId]) -> bool:
         """
-        TODO: @ej test this spaghetti code
+        Bulk delete multiple lemmata and their related data
         """
         lemma_ids = list(lemma_ids)
         if not self._all_lemmata_exist(lemma_ids):
             return False
 
-        cursor = self.connection.cursor()
-        lemma_id_placeholders = "(" + ",".join(["%s"] * len(lemma_ids)) + ")"
-        sql_lemma_source = (
-            "DELETE FROM lemma_source WHERE lemma_id IN"
-            f" {lemma_id_placeholders}"
+        # Get all lemma data before deletion
+        lemmata = self.bulk_get_lemmata(lemma_ids)
+
+        # Track source IDs for later updating removed_lemmata_num
+        source_counter = Counter([lemma.found_in_source for lemma in lemmata])
+
+        # Get all context IDs associated with the lemmata from lemma_context
+        response = (
+            self.connection.table("lemma_context")
+            .select("context_id")
+            .in_("lemma_id", lemma_ids)
+            .execute()
         )
-        cursor.execute(sql_lemma_source, lemma_ids)
-        self.connection.commit()
+        context_ids = {
+            ContextId(item["context_id"]) for item in response.data or []
+        }
 
-        sql_found_in_source = (
-            "SELECT found_in_source FROM lemma WHERE id IN"
-            f" {lemma_id_placeholders}"
-        )
-
-        cursor.execute(sql_found_in_source, lemma_ids)
-        found_in_source_ids = [SourceId(res[0]) for res in cursor.fetchall()]
-
-        counter = Counter(found_in_source_ids)
-        source_ids_by_occurences = defaultdict(list)
-        for source_id, occurences in counter.items():
-            source_ids_by_occurences[occurences].append(source_id)
-
-        for (
-            occurences,
-            source_ids_of_count,
-        ) in source_ids_by_occurences.items():
-            sql_source = (
-                "UPDATE source SET removed_lemmata_num = removed_lemmata_num +"
-                " %s WHERE id IN ("
-                + ",".join(["%s"] * len(source_ids_of_count))
-                + ")"
+        # For each context ID, update the context_value to remove lemma_id
+        # references
+        for context_id in context_ids:
+            # First get the context value
+            context_response = (
+                self.connection.table("context")
+                .select("context_value")
+                .eq("id", context_id)
+                .execute()
             )
-            cursor.execute(sql_source, (occurences, source_ids_of_count))
-            self.connection.commit()
+            if context_response.data and len(context_response.data) > 0:
+                context_value = context_response.data[0]["context_value"]
+                updated_context_value = context_value
 
-        sql_context_ids = (
-            "SELECT context_id FROM lemma_context WHERE lemma_id IN"
-            f" {lemma_id_placeholders}"
-        )
-        cursor.execute(sql_context_ids, lemma_ids)
-        context_ids = list({ContextId(res[0]) for res in cursor.fetchall()})
-        sql_lemma_context = (
-            "DELETE FROM lemma_context WHERE lemma_id IN"
-            f" {lemma_id_placeholders}"
-        )
-        cursor.execute(sql_lemma_context, lemma_ids)
-        self.connection.commit()
+                # Apply regex replacement for each lemma ID
+                for lemma_id in lemma_ids:
+                    updated_context_value = re.sub(
+                        rf"(::{lemma_id})(\D)", r"\g<2>", updated_context_value
+                    )
 
-        # For all contexts in context_ids, update the context_value using
-        # a regex replacement to remove the lemma_ids, similar to:
-        # re.sub(
-        #    rf"(::{lemma_id})(\D)", r"\g<2>", context_value
-        # )
-        # This can be performed using mysql 8.0 regex_replace function:
-        sql_replace_lids = (
-            "UPDATE context SET context_value = REGEXP_REPLACE("
-            "context_value, %s, %s) WHERE id IN ("
-            + ",".join(["%s"] * len(context_ids))
-            + ")"
-        )
-        print(sql_replace_lids)
+                # Update the context value if changed
+                if updated_context_value != context_value:
+                    self.connection.table("context").update(
+                        {"context_value": updated_context_value}
+                    ).eq("id", context_id).execute()
 
-        # to test this manually: insert a lemma source with title
-        # "test::1 replacing::1-various::1 ids." as json serialised thing
-        # replacing should be testing with regex...
-        # TODO
-        # SELECT REGEXP_REPLACE('stackoverflow','(.{5})(.*)','$2$1');
-        # https://stackoverflow.com/questions/7058209/how-do-i-refer-to-capture-groups-in-a-mysql-regex
+        # Delete all entries in lemma_context with these lemma_ids
+        self.connection.table("lemma_context").delete().in_(
+            "lemma_id", lemma_ids
+        ).execute()
+
+        # Delete all entries in lemma_source with these lemma_ids
+        self.connection.table("lemma_source").delete().in_(
+            "lemma_id", lemma_ids
+        ).execute()
+
+        # Update removed_lemmata_num for each affected source
+        for source_id, count in source_counter.items():
+            source = self.get_source(source_id)
+            if source:
+                self.connection.table("source").update(
+                    {"removed_lemmata_num": source.removed_lemmata_num + count}
+                ).eq("id", source_id).execute()
+
+        # Finally delete the lemmata themselves
+        self.connection.table("lemma").delete().in_("id", lemma_ids).execute()
+
+        # Verify deletion was successful (none of the lemmata should exist
+        # anymore)
+        return len(self.bulk_get_lemmata(lemma_ids)) == 0
 
     def _all_lemmata_exist(self, lemma_ids: list[LemmaId]) -> bool:
-        lemmata = self.bulk_get_lemmata(lemma_ids)
-        return {lemma.id for lemma in lemmata} == set(lemma_ids)
+        """
+        Check if all lemmata in a list exist
+        """
+        if not lemma_ids:
+            return True
 
-    def _all_contexts_exist(self, cids: list[ContextId]) -> bool:
-        contexts = self.bulk_get_contexts(cids)
-        return {context.id for context in contexts} == set(cids)
+        # Supabase requires a different approach than count(*)
+        response = (
+            self.connection.table("lemma")
+            .select("id")
+            .in_("id", lemma_ids)
+            .execute()
+        )
+
+        if not response.data:
+            return False
+
+        # Compare the count of returned IDs with the count of requested IDs
+        return len(response.data) == len(lemma_ids)
+
+    def _all_contexts_exist(self, context_ids: list[ContextId]) -> bool:
+        """
+        Check if all contexts in a list exist
+        """
+        if not context_ids:
+            return True
+
+        response = (
+            self.connection.table("context")
+            .select("id")
+            .in_("id", context_ids)
+            .execute()
+        )
+
+        if not response.data:
+            return False
+
+        # Compare the count of returned IDs with the count of requested IDs
+        return len(response.data) == len(context_ids)
+
+    def delete_lemma_context_relation(
+        self, lemma_context_id: LemmaContextId
+    ) -> bool:
+        """
+        Deletes a lemma-context relation from the database.
+        """
+        # Check if relation exists first
+        if not self.get_lemma_context_relation(lemma_context_id):
+            return False
+
+        # Delete using Supabase
+        response = (
+            self.connection.table("lemma_context")
+            .delete()
+            .eq("id", lemma_context_id)
+            .execute()
+        )
+
+        return response.data is not None and len(response.data) > 0
 
 
 if __name__ == "__main__":
+    """
+    Examples of how to use the Supabase-based LexDbIntegrator
+    """
+    # Initialize connection to Supabase
     db = LexDbIntegrator(DbEnvironment.DEV)
+    sk_id = db.add_source_kind(SourceKindVal.BOOK)
+    print(f"Added source kind with ID: {sk_id}")
+
+    db.truncate_all_tables()

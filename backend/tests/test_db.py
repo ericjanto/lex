@@ -25,11 +25,10 @@ from ..api._utils import absolutify_path_from_root
 
 @pytest.fixture
 def db():
-    db = LexDbIntegrator(DbEnvironment.DEVADMIN)
+    db = LexDbIntegrator(DbEnvironment.DEV)
     db.truncate_all_tables()
     yield db
     db.truncate_all_tables()
-    db.close_connection()
 
 
 db_changed = pytest.mark.skipif(
@@ -50,13 +49,7 @@ db_changed = pytest.mark.skipif(
 
 class TestInexpensiveDbMethods:
     def test_connection_initialisation(self, db: LexDbIntegrator):
-        assert db.connection.is_connected()
-
-    def test_close_connection(self):
-        db = LexDbIntegrator(DbEnvironment.DEV)
-        assert db.connection.is_connected()
-        db.close_connection()
-        assert not db.connection.is_connected()
+        assert db.connection is not None
 
     def test_empty_all_tables_prod_fail(self):
         db = LexDbIntegrator(DbEnvironment.PROD)
@@ -65,7 +58,6 @@ class TestInexpensiveDbMethods:
 
 
 def reset_and_populate(db: LexDbIntegrator):
-    # TODO @ej refactor duplicated code into methods like this
     db.truncate_all_tables()
     source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
     source_id = db.add_source(
@@ -98,62 +90,11 @@ def reset_and_populate(db: LexDbIntegrator):
 
 @db_changed
 class TestExpensiveDbMethods:
-    # def test_truncate_all_tables_success(self, db: LexDbIntegrator):
-    #     cursor = db.connection.cursor()
-
-    #     # Populate tables | sourcery skip: no-loop-in-tests
-    #     tables = [
-    #         "source_kind",
-    #         "lemma_status",
-    #         "lemma",
-    #         "source",
-    #         "lemma_source",
-    #         "context",
-    #         "lemma_context",
-    #     ]
-
-    #     db.add_source_kind(SourceKindVal.BOOK)
-    #     status_id = db.add_status(StatusVal.STAGED)
-    #     source_kind_id = db.add_source_kind(SourceKindVal.BOOK)
-    #     source_id = db.add_source(
-    #         Source(
-    #             title="The Hobbit",
-    #             source_kind_id=source_kind_id,
-    #             author="Some Author",
-    #             lang="en",
-    #         )
-    #     )
-    #     lemma_id = db.add_lemma(
-    #         Lemma(
-    #            lemma="hobbit", status_id=status_id, found_in_source=source_id
-    #         )
-    #     )
-    #     context_id = db.add_context(
-    #         Context(context_value="somecontext", source_id=source_id)
-    #     )
-    #     db.add_lemma_context_relation(
-    #         LemmaContextRelation(
-    #             lemma_id=lemma_id,
-    #             context_id=context_id,
-    #             upos_tag=UposTag.NOUN,
-    #             detailed_tag="NN",
-    #         )
-    #     )
-
-    #     # Validate that the tables are not empty | sourcery skip:
-    #     # no-loop-in-tests
-    #     for table in tables[:1]:  # TODO: ammend this
-    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
-    #         assert cursor.fetchone()[0] > 0
-
-    #     db.truncate_all_tables()
-
-    #    # Validate that the tables are empty | sourcery skip: no-loop-in-tests
-    #     for table in tables:
-    #         cursor.execute(f"SELECT COUNT(*) FROM {table};")
-    #         assert cursor.fetchone()[0] == 0
-
-    #     cursor.close()
+    def test_truncate_all_tables_success(self, db: LexDbIntegrator):
+        db.truncate_all_tables()
+        assert db.get_lemma(LemmaId(1)) is None
+        assert db.get_source(SourceId(1)) is None
+        assert db.get_context(ContextId(1)) is None
 
     def test_add_source_kind_success(self, db: LexDbIntegrator):
         assert db.add_source_kind(SourceKindVal.BOOK) > 0

@@ -4,3 +4,7 @@ uncommitted
 __pycache__
 t.txt
 .vscode
+.pytest_cache
+.ruff_cache
+log.txt
+.mypy_cache

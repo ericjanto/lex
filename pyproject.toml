@@ -5,7 +5,7 @@ select = [
     "UP", # pyupgrade
 ]
 line-length = 79 # Same as Black.
-target-version = "py39"
+target-version = "py311"
 exclude = [
     "uncommitted",
 ]
@@ -13,7 +13,6 @@ exclude = [
 [tool.black]
 line-length = 79
 preview = true
-organize-imports = false
 
 [tool.isort]
 multi_line_output = 3
@@ -22,24 +21,9 @@ force_grid_wrap = 0
 line_length = 79
 profile = "black"
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "$version"
-version_scheme = "pep440"
-version = "0.1.0"
-update_changelog_on_bump = true
-major_version_zero = true
-
 [tool.mypy]
 ignore_missing_imports = true
 check_untyped_defs = true
 exclude = [
     "uncommitted",
 ]
-
-[tool.poetry]
-name = "lex-backend"
-version = "0.1.0"
-description = ""
-authors = ["Eric Janto <e.janto@gmx.de>"]
-readme = "README.md"

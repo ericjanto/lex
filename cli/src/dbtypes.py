@@ -1,9 +1,12 @@
 """
 Typing class for the database integration.
+
+N.B.: This file is coupled to api._dbtypes.py. Those two files should be kept
+in sync.
 """
 from datetime import datetime
 from enum import Enum
-from typing import NewType
+from typing import NewType, TypedDict
 
 from pydantic import BaseModel
 
@@ -145,3 +148,11 @@ class LemmaContextRelation(ConfiguredBaseModel):
     context_id: ContextId
     upos_tag: UposTag
     detailed_tag: str
+
+
+class EmptyDict(TypedDict, total=False):
+    pass
+
+
+class LemmaValue(BaseModel):
+    value: str

@@ -1,0 +1,13 @@
+services:
+  anki:
+    image: thisisnttheway/headless-anki:latest
+    container_name: anki-headless
+    ports:
+      - "8765:8765"   # AnkiConnect
+      - "5900:5900"   # VNC (only needed for initial sync login)
+    environment:
+      - ANKICONNECT_WILDCARD_ORIGIN=1
+      - VNC_PASSWORD=your_secure_password # CHANGE THIS
+    volumes:
+      - ./anki_data:/data
+    restart: always

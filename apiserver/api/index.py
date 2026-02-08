@@ -5,11 +5,9 @@ Exposes API endpoints to interact with the database.
 """
 
 import os
-from typing import TypedDict, Union
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from rich import print as rprint
 
 from ._db import LexDbIntegrator
@@ -17,12 +15,14 @@ from ._dbtypes import (
     Context,
     ContextId,
     DbEnvironment,
+    EmptyDict,
     Lemma,
     LemmaContextId,
     LemmaContextRelation,
     LemmaId,
     LemmaList,
     LemmaSourceRelation,
+    LemmaValue,
     Source,
     SourceId,
     SourceKind,
@@ -59,14 +59,6 @@ else:
     set_db_env(DbEnvironment.PROD)  # Uhm
 
 
-class EmptyDict(TypedDict, total=False):
-    pass
-
-
-class LemmaValue(BaseModel):
-    value: str
-
-
 @app.get("/")
 async def landing():
     return {"api_status": "working"}
@@ -78,7 +70,7 @@ async def read_root():
 
 
 @app.get("/lemma/{lemma_id}")
-async def get_lemma(lemma_id: LemmaId) -> Union[Lemma, EmptyDict]:
+async def get_lemma(lemma_id: LemmaId) -> Lemma | EmptyDict:
     return db.get_lemma(lemma_id) or EmptyDict()
 
 
@@ -98,7 +90,7 @@ async def get_status_id(status_val: StatusVal) -> StatusId:
 
 
 @app.get("/lemma_status_by_id/{status_id}")
-async def get_status_by_id(status_id: StatusId) -> Union[Status, None]:
+async def get_status_by_id(status_id: StatusId) -> Status | None:
     return db.get_status_by_id(status_id)
 
 
@@ -140,9 +132,9 @@ async def get_lemma_contexts(
 async def get_sources(
     page: int,
     page_size: int,
-    author: Union[str, None] = None,
-    lang: Union[str, None] = None,
-    source_kind_id: Union[SourceKindId, None] = None,
+    author: str | None = None,
+    lang: str | None = None,
+    source_kind_id: SourceKindId | None = None,
 ) -> list[Source]:
     args = locals()
     filter_params = {
@@ -155,14 +147,14 @@ async def get_sources(
 
 
 @app.get("/source/{source_id}")
-async def get_source(source_id: SourceId) -> Union[Source, None]:
+async def get_source(source_id: SourceId) -> Source | None:
     return db.get_source(source_id)
 
 
 @app.get("/source_kind/{source_kind_id}")
 async def get_source_kind(
     source_kind_id: SourceKindId,
-) -> Union[SourceKind, None]:
+) -> SourceKind | None:
     return db.get_source_kind(source_kind_id)
 
 

@@ -1,0 +1,5 @@
+name: lex-cli
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12

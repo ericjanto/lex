@@ -1,9 +1,7 @@
-from typing import Union
-
 import requests
 
-from api._const import Const
-from api._dbtypes import (
+from .const import Const
+from .dbtypes import (
     Context,
     ContextId,
     Lemma,
@@ -13,6 +11,7 @@ from api._dbtypes import (
     LemmaList,
     LemmaSourceId,
     LemmaSourceRelation,
+    LemmaValue,
     Source,
     SourceId,
     SourceKindId,
@@ -21,7 +20,6 @@ from api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from api.index import LemmaValue
 
 
 class ApiRequestor:
@@ -32,6 +30,7 @@ class ApiRequestor:
     """
 
     def __init__(self) -> None:
+        # self.api_url = Const.API_PROD_URL
         self.api_url = Const.API_LOCAL_URL
 
     def get_lemma_name(self, lemma_id: LemmaId) -> str:
@@ -40,7 +39,8 @@ class ApiRequestor:
 
     def get_lemma_id(self, lemma: str) -> LemmaId:
         r = requests.get(
-            f"{self.api_url}/lemma_id", json=LemmaValue(value=lemma).dict()
+            f"{self.api_url}/lemma_id",
+            json=LemmaValue(value=lemma).model_dump(),
         )
         return LemmaId(r.json()) if r.status_code == 200 else LemmaId(-1)
 
@@ -60,8 +60,8 @@ class ApiRequestor:
     def get_status_lemmata(
         self,
         status_val: StatusVal,
-        page: Union[int, None] = None,
-        page_size: Union[int, None] = None,
+        page: int | None = None,
+        page_size: int | None = None,
         table: bool = False,
     ) -> str:
         query_params = {}

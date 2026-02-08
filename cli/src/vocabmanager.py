@@ -5,12 +5,11 @@ Collection of functionality to show and modify the vocabulary.
 """
 
 from datetime import datetime
-from typing import Union
 
-from api._const import Const
-from api._dbtypes import LemmaId, StatusVal
-
+from .anki import AnkiConnectClient
 from .apirequestor import ApiRequestor
+from .const import Const
+from .dbtypes import LemmaId, StatusVal
 from .textparser import TextParser
 
 
@@ -20,6 +19,7 @@ class VocabManager:
     def __init__(self) -> None:
         """ """
         self.api = ApiRequestor()
+        self.anki = AnkiConnectClient()
 
     def transfer_lemma_to_irrelevant_vocab(self, lemma: str) -> bool:
         lemma_id = self.api.get_lemma_id(lemma)
@@ -55,7 +55,7 @@ class VocabManager:
         return self.api.delete_lemmata(lemma_ids)
 
     def print_staged_lemma_rows(
-        self, page: int = 1, page_size: Union[int, None] = None
+        self, page: int = 1, page_size: int | None = None
     ) -> None:
         print(
             self.api.get_status_lemmata(
@@ -95,4 +95,38 @@ class VocabManager:
                 dt_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
                 for lid in lemma_ids:
                     f.write(f"{lid},{dt_str}\n")
+        return success
+
+    def add_to_anki(self, lemma: str) -> bool:
+        """
+        Adds a lemma and its first context sentence to Anki.
+        """
+        lemma_id = self.api.get_lemma_id(lemma)
+        if lemma_id == -1:
+            print(f"Lemma '{lemma}' not found in database.")
+            return False
+
+        contexts = self.api.get_lemma_contexts(lemma_id, page=1, page_size=1)
+        context_text = (
+            contexts[0].context_value if contexts else "No context found."
+        )
+
+        result = self.anki.add_note(lemma, context_text)
+        if "error" in result and result["error"]:
+            print(f"Anki Error: {result['error']}")
+            return False
+
+        print(f"Successfully added '{lemma}' to Anki.")
+        return True
+
+    def add_lemmata_to_anki(self, lemma_ids: set[LemmaId]) -> bool:
+        """
+        Adds multiple lemmata to Anki.
+        """
+        success = True
+        for lid in lemma_ids:
+            lemma = self.api.get_lemma_name(lid)
+            if lemma:
+                if not self.add_to_anki(lemma):
+                    success = False
         return success

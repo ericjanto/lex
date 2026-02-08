@@ -8,3 +8,4 @@ t.txt
 .ruff_cache
 log.txt
 .mypy_cache
+*node_modules

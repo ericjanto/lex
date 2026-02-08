@@ -19,8 +19,9 @@ from spacy.lang.en.stop_words import (
 from spacy.lang.lex_attrs import is_stop
 from spacy.tokens import Doc, Token
 
-from api._const import Const
-from api._dbtypes import (
+from .apirequestor import ApiRequestor
+from .const import Const
+from .dbtypes import (
     LemmaContextRelation,
     LemmaId,
     LemmaSourceRelation,
@@ -28,9 +29,7 @@ from api._dbtypes import (
     StatusVal,
     UposTag,
 )
-from api._utils import buf_count_newlines, enhanced_progress_params
-
-from .apirequestor import ApiRequestor
+from .utils import buf_count_newlines, enhanced_progress_params
 
 
 class IntermediaryDbDatum(NamedTuple):

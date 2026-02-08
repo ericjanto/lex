@@ -4,11 +4,10 @@ from pathlib import Path
 import typer
 from rich import print as rprint
 
-from api._dbtypes import LemmaId
-from api._utils import absolutify_path_from_root
-
 from .contentextractor import ContentExtractor
+from .dbtypes import LemmaId
 from .textparser import TextParser
+from .utils import absolutify_path_from_root
 from .vocabmanager import VocabManager
 
 cli = typer.Typer()
@@ -157,7 +156,7 @@ def pushm(lemma_ids: list[int]):
 
 
 @cli.command("ls")
-def list(
+def list_staged_lemmata(
     head: int = 25,
 ):
     """
@@ -165,6 +164,31 @@ def list(
     """
     vm = VocabManager()
     vm.print_staged_lemma_rows(page_size=head)
+
+
+@cli.command("anki")
+def add_to_anki(lemma: str):
+    """
+    Add a specific lemma to Anki.
+    """
+    vm = VocabManager()
+    if vm.add_to_anki(lemma):
+        rprint(f"[green]Successfully added '{lemma}' to Anki.")
+    else:
+        rprint(f"[red]Failed to add '{lemma}' to Anki.")
+
+
+@cli.command("ankim")
+def add_multiple_to_anki(lemma_ids: list[int]):
+    """
+    Add multiple lemmata to Anki by their IDs.
+    """
+    lids = {LemmaId(lid) for lid in lemma_ids}
+    vm = VocabManager()
+    if vm.add_lemmata_to_anki(lids):
+        rprint("[green]Successfully added selected lemmata to Anki.")
+    else:
+        rprint("[red]Some lemmata could not be added to Anki.")
 
 
 def main():

@@ -7,10 +7,9 @@ Lex database API
 import os
 import re
 from collections import Counter, OrderedDict
-from typing import Union
 
 from dotenv import load_dotenv
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from supabase import Client, ClientOptions, create_client
 from tabulate import tabulate
 
@@ -130,7 +129,7 @@ class LexDbIntegrator:
 
     def get_source_kind(
         self, source_kind_id: SourceKindId
-    ) -> Union[SourceKind, None]:
+    ) -> SourceKind | None:
         """
         Returns a SourceKind object. Returns None if the kind doesn't
         exist.
@@ -145,7 +144,7 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(SourceKind, response.data[0])
+        return TypeAdapter(SourceKind).validate_python(response.data[0])
 
     def add_source(self, source: Source) -> SourceId:
         """
@@ -199,7 +198,7 @@ class LexDbIntegrator:
 
         return SourceId(response.data[0]["id"])
 
-    def get_source(self, source_id: SourceId) -> Union[Source, None]:
+    def get_source(self, source_id: SourceId) -> Source | None:
         """
         Returns a Source object. Returns None if the source doesn't
         exist.
@@ -214,13 +213,13 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(Source, response.data[0])
+        return TypeAdapter(Source).validate_python(response.data[0])
 
     def get_paginated_sources(
         self,
         page: int,
         page_size: int,
-        filter_params: Union[dict[str, Union[int, str]], None] = None,
+        filter_params: dict[str, int | str] | None = None,
     ) -> list[Source]:
         """
         Returns a list of all sources within the pagination range.
@@ -244,7 +243,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Source, item) for item in response.data]
+        adapter = TypeAdapter(Source)
+        return [adapter.validate_python(item) for item in response.data]
 
     def add_status(self, status_val: StatusVal) -> StatusId:
         """
@@ -284,7 +284,7 @@ class LexDbIntegrator:
 
         return StatusId(response.data[0]["id"])
 
-    def get_status_by_id(self, status_id: StatusId) -> Union[Status, None]:
+    def get_status_by_id(self, status_id: StatusId) -> Status | None:
         """
         Returns the status of a lemma. Returns None if the status doesn't
         exist.
@@ -299,7 +299,7 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(Status, response.data[0])
+        return TypeAdapter(Status).validate_python(response.data[0])
 
     def add_lemma(self, lemma: Lemma) -> LemmaId:
         """
@@ -386,7 +386,7 @@ class LexDbIntegrator:
 
         return result
 
-    def get_lemma(self, lemma_id: LemmaId) -> Union[Lemma, None]:
+    def get_lemma(self, lemma_id: LemmaId) -> Lemma | None:
         """
         Returns a lemma. Returns None if the lemma doesn't exist.
         """
@@ -400,7 +400,7 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(Lemma, response.data[0])
+        return TypeAdapter(Lemma).validate_python(response.data[0])
 
     def bulk_get_lemmata(self, lemma_ids: list[LemmaId]) -> list[Lemma]:
         """
@@ -422,7 +422,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Lemma, item) for item in response.data]
+        adapter = TypeAdapter(Lemma)
+        return [adapter.validate_python(item) for item in response.data]
 
     def get_status_lemma_rows(
         self,
@@ -452,7 +453,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Lemma, item) for item in response.data]
+        adapter = TypeAdapter(Lemma)
+        return [adapter.validate_python(item) for item in response.data]
 
     def get_status_lemma_rows_table(
         self,
@@ -527,7 +529,7 @@ class LexDbIntegrator:
         # Map lemma values to IDs
         return {item["lemma"]: LemmaId(item["id"]) for item in response.data}
 
-    def get_lemma_status(self, lemma_id: LemmaId) -> Union[Status, None]:
+    def get_lemma_status(self, lemma_id: LemmaId) -> Status | None:
         """
         Returns the status of a lemma. Returns None if the lemma id is invalid
         """
@@ -632,7 +634,7 @@ class LexDbIntegrator:
         self,
         lemma_id: LemmaId,
         source_id: SourceId,
-        limit: Union[int, None] = None,
+        limit: int | None = None,
     ) -> list[LemmaSourceId]:
         """
         Returns the ids of all lemma-source relations.
@@ -693,7 +695,7 @@ class LexDbIntegrator:
 
         return ContextId(response.data[0]["id"])
 
-    def get_context(self, context_id: ContextId) -> Union[Context, None]:
+    def get_context(self, context_id: ContextId) -> Context | None:
         """
         Returns a context. Returns None if the context doesn't
         exist.
@@ -708,7 +710,7 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(Context, response.data[0])
+        return TypeAdapter(Context).validate_python(response.data[0])
 
     def bulk_get_contexts(self, cids: list[ContextId]) -> list[Context]:
         """
@@ -730,7 +732,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Context, item) for item in response.data]
+        adapter = TypeAdapter(Context)
+        return [adapter.validate_python(item) for item in response.data]
 
     def get_paginated_contexts(
         self, page: int, page_size: int
@@ -754,7 +757,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Context, item) for item in response.data]
+        adapter = TypeAdapter(Context)
+        return [adapter.validate_python(item) for item in response.data]
 
     def get_paginated_source_contexts(
         self, source_id: SourceId, page: int, page_size: int
@@ -779,7 +783,8 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [parse_obj_as(Context, item) for item in response.data]
+        adapter = TypeAdapter(Context)
+        return [adapter.validate_python(item) for item in response.data]
 
     def get_context_id(
         self, context_value: str, source_id: SourceId
@@ -874,7 +879,7 @@ class LexDbIntegrator:
 
     def get_lemma_context_relation(
         self, lemma_context_id: LemmaContextId
-    ) -> Union[LemmaContextRelation, None]:
+    ) -> LemmaContextRelation | None:
         """
         Returns a lemma-context relation.
         """
@@ -890,7 +895,7 @@ class LexDbIntegrator:
 
         # Convert upos_tag string value to UposTag enum
         result_data = response.data[0]
-        return parse_obj_as(LemmaContextRelation, result_data)
+        return TypeAdapter(LemmaContextRelation).validate_python(result_data)
 
     def get_lemma_contexts(
         self, lemma_id: LemmaId, page: int, page_size: int
@@ -932,7 +937,10 @@ class LexDbIntegrator:
         if not contexts_response.data:
             return []
 
-        return [parse_obj_as(Context, item) for item in contexts_response.data]
+        adapter = TypeAdapter(Context)
+        return [
+            adapter.validate_python(item) for item in contexts_response.data
+        ]
 
     def get_lemma_context_relations(
         self, lemma_context: LemmaContextRelation
@@ -944,7 +952,7 @@ class LexDbIntegrator:
         """
         # Filter out id field from query parameters
         keys_to_exclude = {"id"}
-        d = lemma_context.dict(exclude=keys_to_exclude)
+        d = lemma_context.model_dump(exclude=keys_to_exclude)
 
         # Query using Supabase
         query = (
@@ -963,11 +971,10 @@ class LexDbIntegrator:
         if not response.data:
             return []
 
-        return [
-            parse_obj_as(LemmaContextRelation, item) for item in response.data
-        ]
+        adapter = TypeAdapter(LemmaContextRelation)
+        return [adapter.validate_python(item) for item in response.data]
 
-    def get_status(self, status_id: StatusId) -> Union[Status, None]:
+    def get_status(self, status_id: StatusId) -> Status | None:
         """
         Returns a status.
         """
@@ -982,7 +989,7 @@ class LexDbIntegrator:
         if not response.data or len(response.data) == 0:
             return None
 
-        return parse_obj_as(Status, response.data[0])
+        return TypeAdapter(Status).validate_python(response.data[0])
 
     def update_lemmata_status(
         self, lemma_ids: list[LemmaId], new_status_id: StatusId
@@ -1023,8 +1030,8 @@ class LexDbIntegrator:
     def update_lemma_context_relation(
         self,
         lemma_context_id: LemmaContextId,
-        new_upos_tag: Union[UposTag, None] = None,
-        new_detailed_tag: Union[str, None] = None,
+        new_upos_tag: UposTag | None = None,
+        new_detailed_tag: str | None = None,
     ) -> bool:
         """
         Changes the upos tag of a lemma-context relation.

@@ -28,7 +28,6 @@ def db():
     db = LexDbIntegrator(DbEnvironment.DEV)
     db.truncate_all_tables()
     yield db
-    db.truncate_all_tables()
 
 
 db_changed = pytest.mark.skipif(

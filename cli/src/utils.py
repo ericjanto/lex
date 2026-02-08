@@ -4,7 +4,6 @@ Collection of utility methods
 
 import subprocess
 from pathlib import Path
-from typing import Union
 
 from rich.progress import (
     BarColumn,
@@ -14,7 +13,7 @@ from rich.progress import (
 )
 
 
-def buf_count_newlines(path: Union[Path, str]) -> int:
+def buf_count_newlines(path: Path | str) -> int:
     # https://stackoverflow.com/questions/845058
     def _make_gen(reader):
         while True:
@@ -37,8 +36,8 @@ def get_git_root() -> str:
 
 def absolutify_path_from_root(path_relative_from_root: str) -> str:
     # NOTE: get_git_root() does not have trailing slash
-    # e.g. /backend/api/_db.py
-    #   => /Users/ericjanto/Developer/Projects/lex/backend/api/_db.py
+    # e.g. /apiserver/api/_db.py
+    #   => /Users/ericjanto/Developer/Projects/lex/apiserver/api/_db.py
     return f"{get_git_root()}{path_relative_from_root}"
 
 

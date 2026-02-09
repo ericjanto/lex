@@ -10,8 +10,9 @@ from collections import Counter, OrderedDict
 
 from dotenv import load_dotenv
 from pydantic import TypeAdapter
-from supabase import Client, ClientOptions, create_client
 from tabulate import tabulate
+
+from supabase import Client, ClientOptions, create_client
 
 from ._dbtypes import (
     Context,
@@ -45,7 +46,16 @@ class LexDbIntegrator:
         Initializes the database connection
         """
         self.env = env
-        load_dotenv()
+        # Try to find .env in project root (2 levels up from api/_db.py)
+        root_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+
+        dotenv_path = os.path.join(root_dir, ".env")
+        if os.path.exists(dotenv_path):
+            load_dotenv(dotenv_path)
+        else:
+            load_dotenv()
         # Updated environment variables for Supabase
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")

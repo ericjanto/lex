@@ -6,7 +6,7 @@ authors = [
     {name = "Eric Janto",email = "jantoeric@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12,<3.13" # Restricted by spacy
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "spacy (>=3.8.5,<4.0.0)",
     "en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0.tar.gz",

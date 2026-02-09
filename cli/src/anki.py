@@ -28,10 +28,11 @@ class AnkiConnectClient:
 
     def add_note(
         self,
-        lemma: str,
-        context: str,
+        front: str,
+        back: str,
         deck: str = Const.ANKI_DEFAULT_DECK,
         model: str = Const.ANKI_DEFAULT_NOTE_TYPE,
+        tags: list[str] = [],
     ):
         """
         Adds a note to Anki.
@@ -40,9 +41,9 @@ class AnkiConnectClient:
             "note": {
                 "deckName": deck,
                 "modelName": model,
-                "fields": {"Front": lemma, "Back": context},
+                "fields": {"Front": front, "Back": back},
                 "options": {"allowDuplicate": False},
-                "tags": ["lex"],
+                "tags": tags or ["lex"],
             }
         }
         return self._invoke("addNote", **params)
@@ -52,3 +53,9 @@ class AnkiConnectClient:
         Creates a deck if it doesn't exist.
         """
         return self._invoke("createDeck", deck=deck_name)
+
+    def sync(self):
+        """
+        Trigger a sync with AnkiWeb.
+        """
+        return self._invoke("sync")

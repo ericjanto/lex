@@ -191,5 +191,18 @@ def add_multiple_to_anki(lemma_ids: list[int]):
         rprint("[red]Some lemmata could not be added to Anki.")
 
 
+@cli.command("sync")
+def sync_anki():
+    """
+    Trigger Anki synchronization with AnkiWeb.
+    """
+    vm = VocabManager()
+    result = vm.anki.sync()
+    if "error" in result and result["error"]:
+        rprint(f"[red]Anki Sync Failed: {result['error']}")
+    else:
+        rprint("[green]Anki Sync triggered successfully.")
+
+
 def main():
     cli()

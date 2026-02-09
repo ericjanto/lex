@@ -9,3 +9,5 @@ t.txt
 log.txt
 .mypy_cache
 *node_modules
+.vercel
+.env*.local

@@ -1,0 +1,616 @@
+{
+  "deployments": [
+    {
+      "url": "lex-frontend-q5egvlq3t-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "ERROR",
+      "target": null,
+      "createdAt": 1770641882369,
+      "buildingAt": 1770641924656,
+      "ready": 1770641930474,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "ericjanto",
+        "githubCommitAuthorEmail": "jantoeric@gmail.com",
+        "githubCommitMessage": "fix: resolve build errors",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "feat/anki-integration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "98a0f77fffdabf37bf19a35d2171b3aa6020c570",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubHost": "github.com",
+        "githubCommitAuthorLogin": "ericjanto",
+        "repoPushedAt": "1770641878000",
+        "branchAlias": "lex-frontend-git-feat-anki-integration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-adnsbme8f-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "ERROR",
+      "target": null,
+      "createdAt": 1770639012023,
+      "buildingAt": 1770639056443,
+      "ready": 1770639087341,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "ericjanto",
+        "githubCommitAuthorEmail": "jantoeric@gmail.com",
+        "githubCommitMessage": "fix: use async server component",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "feat/anki-integration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "73c338dcd9adf308426d2e7a6b1da310eac3f4b4",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubHost": "github.com",
+        "githubCommitAuthorLogin": "ericjanto",
+        "repoPushedAt": "1770639007000",
+        "branchAlias": "lex-frontend-git-feat-anki-integration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-b0yfjykos-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "ERROR",
+      "target": null,
+      "createdAt": 1770637780522,
+      "buildingAt": 1770637782045,
+      "ready": 1770637813397,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "ericjanto",
+        "githubCommitAuthorEmail": "jantoeric@gmail.com",
+        "githubCommitMessage": "feat: implement Anki integration using AnkiConnect and refactor project structure",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "feat/anki-integration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "ea8c17d96703d4e5274cb72e693d24b89809e815",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubHost": "github.com",
+        "githubCommitAuthorLogin": "ericjanto",
+        "repoPushedAt": "1770560990000",
+        "branchAlias": "lex-frontend-git-feat-anki-integration-ericjantos-projects.vercel.app",
+        "action": "redeploy",
+        "originalDeploymentId": "dpl_2DYMXa6BLEzL4YnoeddEqWV8bvhd"
+      }
+    },
+    {
+      "url": "lex-frontend-f3ierhcyt-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "ERROR",
+      "target": null,
+      "createdAt": 1770560994957,
+      "buildingAt": 1770560996297,
+      "ready": 1770560999627,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "ericjanto",
+        "githubCommitAuthorEmail": "jantoeric@gmail.com",
+        "githubCommitMessage": "feat: implement Anki integration using AnkiConnect and refactor project structure",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "feat/anki-integration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "ea8c17d96703d4e5274cb72e693d24b89809e815",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubHost": "github.com",
+        "githubCommitAuthorLogin": "ericjanto",
+        "repoPushedAt": "1770560990000",
+        "branchAlias": "lex-frontend-git-feat-anki-integration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-5p5axmqws-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1747143709461,
+      "buildingAt": 1747143712080,
+      "ready": 1747143754019,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: update ignored files",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "chore/api-cli-separation",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "70bb1c9ab6cfd6a58157763f28b59a83be7f5b47",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-chore-api-cli-separation-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-ev7wxzf6j-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "CANCELED",
+      "target": null,
+      "createdAt": 1746798895107,
+      "buildingAt": 1746798896601,
+      "ready": 1746798929362,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: use latest module versions",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "chore/api-cli-separation",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "8aef380effe5ee14e99c7490094e3f40f5596d82",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-chore-api-cli-separation-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-lq0tevo8r-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1746798355719,
+      "buildingAt": 1746798357208,
+      "ready": 1746798390299,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: add supabase requirement",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "chore/api-cli-separation",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "69c60c1402def2ef60b0ef7bf24c2c461c7906a4",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-chore-api-cli-separation-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-cpdtfaxsw-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1746797797002,
+      "buildingAt": 1746797798872,
+      "ready": 1746797833638,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: separate api and fix db",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "chore/api-cli-separation",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "02628a827e907792557db21deadfc35df0ef133c",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-chore-api-cli-separation-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-gzsxorqv8-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1746776887062,
+      "buildingAt": 1746776888335,
+      "ready": 1746776923870,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "merge: pull request #46 from ericjanto/db/postgres-migration (closes #44)",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "80c4f8dd9066faab77936734ed304bc46c022f79",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-3q1401r06-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1746740451488,
+      "buildingAt": 1746740452894,
+      "ready": 1746740486344,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: remove unused requirements",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "db/postgres-migration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "6af96b47e1f2965d0fbe42271b642b6c0c846370",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-db-postgres-migration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-djywn671e-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1746739653520,
+      "buildingAt": 1746739654748,
+      "ready": 1746739690648,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "fix: update types and root api call",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "db/postgres-migration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "46fb9d98c0b6a3e45b06646c3b1a00da89f3fdf7",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-db-postgres-migration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-1csugycgd-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": null,
+      "createdAt": 1746738736512,
+      "buildingAt": 1746738738093,
+      "ready": 1746738782689,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: migrate to postgresql",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "db/postgres-migration",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "0414216963d2dbe5e4fa7a6710f057f17bba4535",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-db-postgres-migration-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-4gmu82b5q-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1743240538837,
+      "buildingAt": 1743240585386,
+      "ready": 1743240647074,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "build: update dependencies and pre-commit config",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "6731a98bd840d6d6593eaa2a30db9b6e7d304370",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "branchAlias": "lex-frontend-git-main-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-dafujtnb8-ericjantos-projects.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1719332563148,
+      "buildingAt": 1719332786292,
+      "ready": 1719332868749,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "Merge pull request #45 from ericjanto/ericjanto-patch-1\n\nUpdate README.md",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "dd43c8455455e4fac8c291c4e383b21efd7113a6",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "public",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjantos-projects.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-q2g3b8a8f-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1695543963055,
+      "buildingAt": 1695544026499,
+      "ready": 1695544064761,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "data: update data",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "34c7d8c62b4f50c2abba8c8c922678f9a7fd6bcd",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-8xrudk1l8-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1695282573050,
+      "buildingAt": 1695282573729,
+      "ready": 1695282617180,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "data: update metadata and irr vocab",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "21bfa2efbbff5ba3d2d784440e5053656041e3b2",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-b20x9rcth-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1695280993505,
+      "buildingAt": 1695280994273,
+      "ready": 1695281036920,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "chore: update usage commands",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "9d86f2845e9d764f6e118d549e138814faaf9b94",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-etwomdt82-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1694954561067,
+      "buildingAt": 1694954561832,
+      "ready": 1694954602355,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "data: update metadata",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "f18338360bb81743a048f16e058b351f4e731466",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-5avavqc7v-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1694627022360,
+      "buildingAt": 1694627023048,
+      "ready": 1694627060862,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "data: update metadata",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "e4f7ae4d679649f200e0b67016cdb76457d85958",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    },
+    {
+      "url": "lex-frontend-cf1koy84y-ericjanto.vercel.app",
+      "name": "lex-frontend",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1694503839592,
+      "buildingAt": 1694503840254,
+      "ready": 1694503912218,
+      "creator": {
+        "uid": "SaKvTb5StXT1N7qB15X9tK8m",
+        "username": "ericjanto"
+      },
+      "meta": {
+        "githubCommitAuthorName": "Eric Janto",
+        "githubCommitMessage": "fix: update help message",
+        "githubCommitOrg": "ericjanto",
+        "githubCommitRef": "main",
+        "githubCommitRepo": "lex",
+        "githubCommitSha": "0e40bf15de6a4e0803dc3b8817b2dda859cc2930",
+        "githubDeployment": "1",
+        "githubOrg": "ericjanto",
+        "githubRepo": "lex",
+        "githubRepoOwnerType": "User",
+        "githubCommitRepoId": "588909884",
+        "githubRepoId": "588909884",
+        "githubRepoVisibility": "private",
+        "githubCommitAuthorLogin": "ericjanto",
+        "branchAlias": "lex-frontend-git-main-ericjanto.vercel.app"
+      }
+    }
+  ],
+  "pagination": {
+    "count": 20,
+    "next": 1694503839592,
+    "prev": 1770641882369
+  }
+}

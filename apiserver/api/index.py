@@ -6,6 +6,7 @@ Exposes API endpoints to interact with the database.
 
 import os
 
+import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rich import print as rprint
@@ -243,3 +244,17 @@ async def delete_lemma(lemma_ids: list[LemmaId]):
 @app.patch("/status")
 async def update_status(lemma_ids: list[LemmaId], new_status_id: StatusId):
     return db.update_lemmata_status(lemma_ids, new_status_id)
+
+
+@app.post("/anki_sync")
+async def sync_anki():
+    anki_url = os.environ.get("ANKI_URL", "http://localhost:8765")
+    try:
+        response = requests.post(
+            anki_url,
+            json={"action": "sync", "version": 6},
+            timeout=10,
+        )
+        return response.json()
+    except Exception as e:
+        return {"result": None, "error": str(e)}

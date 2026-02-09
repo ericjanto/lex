@@ -14,7 +14,9 @@ from .utils import absolutify_path_from_root
 @dataclass
 class Const:
     API_LOCAL_URL = "http://127.0.0.1:8000"
-    API_PROD_URL = "https://lex.ericjanto.com"
+    API_PROD_URL = (
+        "https://ldmdsjurxfaefuehqezh.supabase.co/functions/v1/lex-api"
+    )
 
     PATH_BASE_VOCAB = absolutify_path_from_root(
         "/assets/reference-vocabulary/vocabulary.base.txt"

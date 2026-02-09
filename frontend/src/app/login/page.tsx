@@ -1,6 +1,6 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 
 export default function LoginPage() {
     const router = useRouter()
-    const supabase = createClientComponentClient()
+    const supabase = createClient()
 
     useEffect(() => {
         const getUser = async () => {
@@ -29,7 +29,7 @@ export default function LoginPage() {
                         supabaseClient={supabase}
                         appearance={{ theme: ThemeSupa }}
                         providers={[]}
-                        redirectTo={`${window.location.origin}/auth/callback`}
+                        redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined}
                     />
                 </div>
             </div>

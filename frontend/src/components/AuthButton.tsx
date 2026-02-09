@@ -1,6 +1,6 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 export default function AuthButton() {
     const [user, setUser] = useState<any>(null)
     const router = useRouter()
-    const supabase = createClientComponentClient()
+    const supabase = createClient()
 
     useEffect(() => {
         const getUser = async () => {

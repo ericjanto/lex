@@ -29,8 +29,8 @@ serve(async (req) => {
         // Verify authentication
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
         if (authError || !user) {
-            // Allow only GET api_status/root for public
-            if (!(method === 'GET' && (path === '/' || path === '/api_status'))) {
+            // Allow only GET requests for public
+            if (method !== 'GET') {
                 return new Response(JSON.stringify({ error: 'Unauthorized' }), {
                     status: 401,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

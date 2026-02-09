@@ -1,3 +1,5 @@
+"use client";
+
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { Lemma } from "@/components/LemmaOverview";
@@ -70,9 +72,8 @@ export default function PaginatedLemmata({
             return (
               <LemmaSetDisplayer
                 key={i}
-                fetchQuery={`${fetchQuery}&page=${
-                  i + 1
-                }&page_size=${page_size}`}
+                fetchQuery={`${fetchQuery}&page=${i + 1
+                  }&page_size=${page_size}`}
               />
             );
           })}

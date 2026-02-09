@@ -1,3 +1,5 @@
+"use client";
+
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { API_BASE_URL } from "@/lib/const";

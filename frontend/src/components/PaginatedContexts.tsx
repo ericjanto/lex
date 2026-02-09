@@ -1,3 +1,5 @@
+"use client";
+
 import useSWRImmutable, { Fetcher } from "swr";
 
 import { Context } from "@/components/Context";

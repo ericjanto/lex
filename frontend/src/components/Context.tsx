@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useState } from "react";
 
@@ -16,9 +18,17 @@ export function Context({
   highlightedLemmaId?: number;
 }) {
   const [hovered, setHovered] = useState(false);
-  const contextValueObj = JSON.parse(context.context_value);
+
+  let contextValueObj;
+  try {
+    contextValueObj = JSON.parse(context.context_value);
+  } catch (e) {
+    // Fallback for non-JSON content
+    contextValueObj = { "0": context.context_value };
+  }
+
   const contextValueArr = Object.values(contextValueObj) as string[];
-  const contextValueArrDeserialised = contextValueArr.map((value: string) => {
+  const contextValueArrDeserialised = contextValueArr.map((value: string, index: number) => {
     if (value.includes("::")) {
       let [word, id] = value.split("::");
       let space = "";
@@ -27,7 +37,7 @@ export function Context({
         space += " ";
       }
       return (
-        <>
+        <span key={index}>
           <Link
             href={`/lemma/${id}`}
             style={
@@ -39,10 +49,10 @@ export function Context({
             {word}
           </Link>
           {space}
-        </>
+        </span>
       );
     }
-    return <>{value}</>;
+    return <span key={index}>{value}</span>;
   });
 
   return (
@@ -55,9 +65,9 @@ export function Context({
       <Link
         href={`/context/${context.id}`}
         style={{
-            textDecoration: "None",
+          textDecoration: "None",
         }}
-        >
+      >
         <span style={{ border: hovered ? "1.5px solid black" : "" }}>{"§"}</span>
       </Link>
       {" "}

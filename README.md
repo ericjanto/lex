@@ -1,43 +1,21 @@
 # Lex
-Recently I made an observation on [attentional bias](https://en.wikipedia.org/wiki/Attentional_bias) when encountering new words: after being presented with a new word for the first time, I see it everywhere from that point on, including in the books that I read. Usually I unconsciously memorise the sentence it appears in, which helps me tremendously remembering its meaning in the long-term.
+Lex is an NLP tool developed around the observation of attentional bias in vocabulary acquisition. It facilitates exhaustive vocabulary acquisition by selecting unknown words from books, contextualizing them, and helping the user learn them before reading.
 
-Lex is an NLP tool which was developed around this observation. Its goal is to facilitate exhaustive vocabulary acquisition. Given a new book that I’m about to read, Lex selects all words that I do not know yet by referring to a reference vocabulary. It then contextualises them, i.e. for every new word it finds the surrounding context. This allows me to learn new words before reading a book.
+## Current Architecture
+- **Frontend**: Next.js application (in `frontend/`)
+- **API**: Supabase Edge Functions (in `supabase/functions/lex-api/`)
+- **Database**: Supabase (Postgres)
 
-## Usage
-- `backend/requirements.txt` specifies dependencies for vercel lambdas
-- from root: `poetry shell && make`
-- spawn new shell, then: `cd backend && python cli.py [command]`
+## Local Setup
+### Frontend
+1. `cd frontend`
+2. `pnpm install`
+3. `pnpm dev`
 
-## Local setup
-Prerequisites:
-- python3.11
-- poetry
-- pnpm
-- conda
+### Supabase Edge Functions
+Refer to the [Supabase Edge Functions documentation](https://supabase.com/docs/guides/functions) for local development and deployment.
 
-Run:
-- `cd backend && poetry install`
-- `cd ../frontend && pnpm i`
-- cd .. && make bsetup
-- conda activate lex-backend
-- cd backend
-- mypy .
-- mypy --install-types
-- pre-commit install --hook-type pre-commit
-- make bsetupvalidate
-
-## commitizen
-- `cz c` to commit staged files
-
-## DB
-- make dbdev
-- source backend/db/schema.sql
-
-## CLI
-- Autocomplete
-
-## To write up
-- Add lex to Python path for internal module use
-- deployment
-  - backend: deta space
-    - hacky workaround: comment out spacy transformer lib
+## Maintenance
+- `make fdev`: Run frontend development server
+- `make psql`: Connect to the Supabase database
+- `make pre`: Run pre-commit hooks manually

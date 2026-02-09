@@ -1,7 +1,0 @@
-black
-ipykernel
-ipywidgets
-jupyterlab
-mypy
-pre-commit
-pytest

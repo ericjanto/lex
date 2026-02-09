@@ -11,3 +11,4 @@ log.txt
 *node_modules
 .vercel
 .env*.local
+todo.md

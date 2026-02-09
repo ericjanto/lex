@@ -41,10 +41,17 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
-      - id: pytest
-        stages: [pre-commit]
-        name: pytest
-        entry: pytest
+      - id: pytest-apiserver
+        name: pytest-apiserver
+        entry: cd apiserver && python3 -m pytest
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
+      - id: pytest-cli
+        name: pytest-cli
+        entry: cd cli && python3 -m pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

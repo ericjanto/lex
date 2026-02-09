@@ -5,9 +5,6 @@ import useSWRImmutable, { Fetcher } from "swr";
 import { Context } from "@/components/Context";
 import { useEffect, useState } from "react";
 
-const fetcher: Fetcher<Context[]> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 function ContextSetDisplayer({
   fetchQuery,
   highlightedLemmaId,
@@ -15,7 +12,7 @@ function ContextSetDisplayer({
   fetchQuery: string;
   highlightedLemmaId?: number;
 }) {
-  const { data, error, isLoading } = useSWRImmutable(fetchQuery, fetcher);
+  const { data, error, isLoading } = useSWRImmutable(fetchQuery);
 
   if (error) return <div>Failed to load: ({JSON.stringify(error)})</div>;
   if (isLoading) return <div>Loading...</div>;

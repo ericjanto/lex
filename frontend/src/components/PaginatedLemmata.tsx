@@ -6,11 +6,8 @@ import { Lemma } from "@/components/LemmaOverview";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export const fetcher: Fetcher<Lemma[]> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
-  const { data, error, isLoading } = useSWRImmutable(fetchQuery, fetcher);
+  const { data, error, isLoading } = useSWRImmutable(fetchQuery);
 
   if (error) {
     console.log(JSON.stringify(error));

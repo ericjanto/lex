@@ -1,14 +1,14 @@
 import StatusPageClient from "./StatusPageClient";
 
-export type StatusVal = "staged" | "committed" | "pushed";
+export type StatusVal = "new" | "synced" | "learned";
 
 export default async function Page({ params }: { params: Promise<{ statusVal: string }> }) {
   const { statusVal } = await params;
 
   if (
-    statusVal !== "staged" &&
-    statusVal !== "committed" &&
-    statusVal !== "pushed"
+    statusVal !== "new" &&
+    statusVal !== "synced" &&
+    statusVal !== "learned"
   ) {
     return <div>Invalid status value</div>;
   }

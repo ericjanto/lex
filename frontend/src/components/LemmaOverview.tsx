@@ -15,13 +15,9 @@ export type Lemma = {
   found_in_source: number;
 };
 
-const lemmaFetcher: Fetcher<Lemma> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 export default function LemmaOverview({ lemmaId }: { lemmaId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `${API_BASE_URL}/lemma/${lemmaId}`,
-    lemmaFetcher
+    `${API_BASE_URL}/lemma/${lemmaId}`
   );
   if (isLoading) {
     return;

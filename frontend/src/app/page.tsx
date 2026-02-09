@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Page() {
   return (
-    <ul style={{listStyleType: 'none', paddingLeft: '0', marginTop: '0'}}>
+    <ul style={{ listStyleType: 'none', paddingLeft: '0', marginTop: '0' }}>
       <li>
         <Link href="/contexts-overview">/contexts-overview</Link>
       </li>
@@ -12,13 +12,16 @@ export default function Page() {
         <Link href="/sources">/sources</Link>
       </li>
       <li>
-        <Link href="/status/staged">/status/staged</Link>
+        <Link href="/status/new">/status/new</Link>
       </li>
       <li>
-        <Link href="/status/committed">/status/committed</Link>
+        <Link href="/status/synced">/status/synced</Link>
       </li>
       <li>
-        <Link href="/status/pushed">/status/pushed</Link>
+        <Link href="/status/learned">/status/learned</Link>
+      </li>
+      <li>
+        <Link href="/learn">/learn</Link>
       </li>
     </ul>
   );

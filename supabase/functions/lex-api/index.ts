@@ -13,11 +13,12 @@ serve(async (req) => {
     }
 
     try {
+        const authHeader = req.headers.get('Authorization')
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_ANON_KEY') ?? '',
             {
-                global: { headers: { Authorization: req.headers.get('Authorization')! } },
+                global: { headers: authHeader ? { Authorization: authHeader } : {} },
                 db: { schema: 'lex' }
             }
         )
@@ -201,7 +202,7 @@ serve(async (req) => {
         }
 
         if (path.startsWith('/lemma_contexts/') && method === 'GET') {
-            const lemma_id = path.split('/')[2]
+            const lemma_id = path.replace('/lemma_contexts/', '')
             const page = parseInt(url.searchParams.get('page') ?? '1')
             const page_size = parseInt(url.searchParams.get('page_size') ?? '100')
 
@@ -213,7 +214,7 @@ serve(async (req) => {
                 .range((page - 1) * page_size, page * page_size - 1)
 
             if (error) throw error
-            return new Response(JSON.stringify(data.map((d: any) => d.context)), {
+            return new Response(JSON.stringify((data || []).map((d: any) => d.context)), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -319,7 +320,7 @@ serve(async (req) => {
         }
 
         if (path.startsWith('/lemma_status_by_id/') && method === 'GET') {
-            const status_id = path.split('/')[3]
+            const status_id = path.split('/')[2] // Fixed index from 3 to 2
             const { data, error } = await supabaseClient
                 .from('lemma_status')
                 .select('*')
@@ -373,6 +374,14 @@ serve(async (req) => {
                 return acc
             }, {})
             return new Response(JSON.stringify(result), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
+        if (path === '/learn/overview' && method === 'GET') {
+            const { data, error } = await supabaseClient.rpc('get_source_learn_overview')
+            if (error) throw error
+            return new Response(JSON.stringify(data), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }

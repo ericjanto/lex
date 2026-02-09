@@ -10,13 +10,9 @@ type SourceKind = {
   kind: string;
 };
 
-const fetcher: Fetcher<SourceKind> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 export default function SourceKind({ sourceKindId }: { sourceKindId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `${API_BASE_URL}/source_kind/${sourceKindId}`,
-    fetcher
+    `${API_BASE_URL}/source_kind/${sourceKindId}`
   );
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {JSON.stringify(error)}</div>;

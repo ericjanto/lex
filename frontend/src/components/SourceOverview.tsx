@@ -15,13 +15,9 @@ export type Source = {
   removed_lemmata_num: number;
 };
 
-const sourceFetcher: Fetcher<Source> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 export function SourceTitle({ sourceId }: { sourceId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `${API_BASE_URL}/source/${sourceId}`,
-    sourceFetcher
+    `${API_BASE_URL}/source/${sourceId}`
   );
 
   if (error) {
@@ -36,8 +32,7 @@ export function SourceTitle({ sourceId }: { sourceId: number }) {
 
 export default function SourceOverview({ sourceId }: { sourceId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `${API_BASE_URL}/source/${sourceId}`,
-    sourceFetcher
+    `${API_BASE_URL}/source/${sourceId}`
   );
 
   if (error) {

@@ -13,22 +13,18 @@ type Status = {
 
 function functionalColour(status: StatusVal) {
   switch (status) {
-    case "staged":
+    case "new":
       return "red";
-    case "committed":
+    case "synced":
       return "orange";
-    case "pushed":
+    case "learned":
       return "green";
   }
 }
 
-const fetcher: Fetcher<Status> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 export default function Status({ statusId }: { statusId: number }) {
   const { data, error, isLoading } = useSWRImmutable(
-    `${API_BASE_URL}/lemma_status_by_id/${statusId}`,
-    fetcher
+    `${API_BASE_URL}/lemma_status_by_id/${statusId}`
   );
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {JSON.stringify(error)}</div>;

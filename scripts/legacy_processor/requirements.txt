@@ -1,0 +1,9 @@
+spacy>=3.8.5,<4.0.0
+en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0.tar.gz
+pydantic>=2.12.5,<3.0.0
+typer>=0.15.3,<0.22.0
+rich>=14.3.0,<15.0.0
+ebooklib>=0.19,<0.21
+beautifulsoup4>=4.14.3,<5.0.0
+click==8.1.8
+requests

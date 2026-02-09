@@ -8,11 +8,8 @@ import Link from "next/link";
 import { Source } from "@/components/SourceOverview";
 import SourceKind from "@/components/SourceKind";
 
-const fetcher: Fetcher<Source[]> = (url: RequestInfo | URL) =>
-  fetch(url).then((r) => r.json());
-
 function SourceSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
-  const { data, error, isLoading } = useSWRImmutable(fetchQuery, fetcher);
+  const { data, error, isLoading } = useSWRImmutable(fetchQuery);
   if (error) {
     console.log(JSON.stringify(error));
     return;

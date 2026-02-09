@@ -26,6 +26,18 @@ serve(async (req) => {
         const path = url.pathname.replace('/lex-api', '')
         const method = req.method
 
+        // Verify authentication
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+        if (authError || !user) {
+            // Allow only GET api_status/root for public
+            if (!(method === 'GET' && (path === '/' || path === '/api_status'))) {
+                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                })
+            }
+        }
+
         // Simple routing logic
         if (path === '/' || path === '/api_status') {
             return new Response(JSON.stringify({ api_status: 'working' }), {

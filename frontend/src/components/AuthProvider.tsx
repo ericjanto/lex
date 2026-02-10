@@ -40,7 +40,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         return () => {
             listener.subscription.unsubscribe();
         };
-    }, []);
+    }, [supabase]);
 
     const value = {
         session,

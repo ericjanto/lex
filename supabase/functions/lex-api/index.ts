@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
 }
 
 serve(async (req) => {
@@ -14,25 +15,38 @@ serve(async (req) => {
 
     try {
         const authHeader = req.headers.get('Authorization')
+
+        // Use service role key for DB operations (bypasses RLS)
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
             {
-                global: { headers: authHeader ? { Authorization: authHeader } : {} },
                 db: { schema: 'lex' }
             }
+        )
+
+        // For auth verification
+        const supabaseAuth = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_ANON_KEY') ?? ''
         )
 
         const url = new URL(req.url)
         const path = url.pathname.replace('/lex-api', '')
         const method = req.method
 
-        // Verify authentication
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-        if (authError || !user) {
-            // Allow only GET requests for public
-            if (method !== 'GET') {
-                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        // Verify authentication for non-GET requests
+        if (method !== 'GET') {
+            const token = authHeader?.replace('Bearer ', '')
+            if (!token) {
+                return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                })
+            }
+            const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
+            if (authError || !user) {
+                return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
                     status: 401,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 })
@@ -63,61 +77,114 @@ serve(async (req) => {
 
         if (path === '/lemma' && method === 'DELETE') {
             const lemma_ids: number[] = await req.json()
+            console.log(`[DELETE /lemma] Processing ${lemma_ids.length} lemmata.`)
 
             for (const id of lemma_ids) {
-                // 1. Get lemma data
-                const { data: lemma, error: lemmaError } = await supabaseClient
-                    .from('lemma')
-                    .select('found_in_source')
-                    .eq('id', id)
-                    .single()
+                try {
+                    // 1. Get lemma data
+                    const { data: lemma, error: lemmaError } = await supabaseClient
+                        .from('lemma')
+                        .select('found_in_source')
+                        .eq('id', id)
+                        .single()
 
-                if (lemmaError) continue
+                    if (lemmaError || !lemma) {
+                        console.log(`[DELETE /lemma] Lemma ${id} not found, skipping.`)
+                        continue
+                    }
 
-                // 2. Get associated contexts
-                const { data: contexts, error: contextsError } = await supabaseClient
-                    .from('lemma_context')
-                    .select('context_id')
-                    .eq('lemma_id', id)
+                    // 2. Process associated contexts
+                    const { data: links, error: linksError } = await supabaseClient
+                        .from('lemma_context')
+                        .select('context_id')
+                        .eq('lemma_id', id)
 
-                if (!contextsError && contexts) {
-                    for (const c of contexts) {
-                        const { data: context, error: contextError } = await supabaseClient
-                            .from('context')
-                            .select('context_value')
-                            .eq('id', c.context_id)
+                    if (linksError) {
+                        console.error(`[DELETE /lemma] Error fetching context IDs for lemma ${id}:`, linksError)
+                    }
+
+                    const contextIds = (links || []).map(l => l.context_id)
+
+                    for (const cid of contextIds) {
+                        // Check for other distinct lemmata associated with this context
+                        // We do this BEFORE removing the current relation to see the full state
+                        const { data: allLinks, error: allLinksError } = await supabaseClient
+                            .from('lemma_context')
+                            .select('lemma_id')
+                            .eq('context_id', cid)
+
+                        if (allLinksError) {
+                            console.error(`[DELETE /lemma] Error fetching relationships for context ${cid}:`, allLinksError)
+                            continue
+                        }
+
+                        const distinctLemmataIds = new Set((allLinks || []).map(l => l.lemma_id))
+
+                        if (distinctLemmataIds.size === 1 && distinctLemmataIds.has(id)) {
+                            // Only this lemma is linked here, so we should delete the context entirely
+                            console.log(`[DELETE /lemma] Context ${cid} is local to lemma ${id}. Deleting context.`)
+                            const { error: ctxDeleteError } = await supabaseClient.from('context').delete().eq('id', cid)
+                            if (ctxDeleteError) console.error(`[DELETE /lemma] Error deleting context ${cid}:`, ctxDeleteError)
+                        } else if (distinctLemmataIds.has(id)) {
+                            // Context is shared with other lemmata. We must cleanup the text tag for 'id'.
+                            console.log(`[DELETE /lemma] Context ${cid} is shared. Removing tag ::${id} from text.`)
+                            const { data: context, error: fetchCtxError } = await supabaseClient
+                                .from('context')
+                                .select('context_value')
+                                .eq('id', cid)
+                                .single()
+
+                            if (!fetchCtxError && context && context.context_value) {
+                                // Pattern: separator :: followed by ID, then a non-digit or end of string.
+                                const regex = new RegExp(`::${id}([^0-9]|$)`, 'g')
+                                const updatedValue = context.context_value.replace(regex, '$1')
+
+                                if (updatedValue !== context.context_value) {
+                                    const { error: updateError } = await supabaseClient
+                                        .from('context')
+                                        .update({ context_value: updatedValue })
+                                        .eq('id', cid)
+                                    if (updateError) console.error(`[DELETE /lemma] Error updating context ${cid}:`, updateError)
+                                }
+                            }
+                        }
+
+                        // Always delete the specific relation for this (lemma, context) pair
+                        await supabaseClient.from('lemma_context')
+                            .delete()
+                            .eq('lemma_id', id)
+                            .eq('context_id', cid)
+                    }
+
+                    // 3. Cleanup relations and update source counter
+                    await supabaseClient.from('lemma_source').delete().eq('lemma_id', id)
+
+                    if (lemma.found_in_source) {
+                        const { data: source } = await supabaseClient
+                            .from('source')
+                            .select('removed_lemmata_num')
+                            .eq('id', lemma.found_in_source)
                             .single()
 
-                        if (!contextError && context) {
-                            const updatedValue = context.context_value.replace(new RegExp(`::${id}(\\D)`, 'g'), '$1')
+                        if (source) {
                             await supabaseClient
-                                .from('context')
-                                .update({ context_value: updatedValue })
-                                .eq('id', c.context_id)
+                                .from('source')
+                                .update({ removed_lemmata_num: (source.removed_lemmata_num || 0) + 1 })
+                                .eq('id', lemma.found_in_source)
                         }
                     }
+
+                    // 4. Final lemma deletion
+                    const { error: finalLemmaDeleteError } = await supabaseClient.from('lemma').delete().eq('id', id)
+                    if (finalLemmaDeleteError) {
+                        console.error(`[DELETE /lemma] Error deleting lemma ${id}:`, finalLemmaDeleteError)
+                    } else {
+                        console.log(`[DELETE /lemma] Successfully deleted lemma ${id}.`)
+                    }
+
+                } catch (lemmaProcessError: any) {
+                    console.error(`[DELETE /lemma] Unexpected error on lemma ${id}:`, lemmaProcessError)
                 }
-
-                // 3. Delete relations
-                await supabaseClient.from('lemma_context').delete().eq('lemma_id', id)
-                await supabaseClient.from('lemma_source').delete().eq('lemma_id', id)
-
-                // 4. Update source counter
-                const { data: source } = await supabaseClient
-                    .from('source')
-                    .select('removed_lemmata_num')
-                    .eq('id', lemma.found_in_source)
-                    .single()
-
-                if (source) {
-                    await supabaseClient
-                        .from('source')
-                        .update({ removed_lemmata_num: source.removed_lemmata_num + 1 })
-                        .eq('id', lemma.found_in_source)
-                }
-
-                // 5. Delete lemma
-                await supabaseClient.from('lemma').delete().eq('id', id)
             }
 
             return new Response(JSON.stringify(true), {
@@ -125,6 +192,7 @@ serve(async (req) => {
             })
         }
 
+        // Lemma status endpoints
         if (path === '/status' && method === 'PATCH') {
             const { lemma_ids, new_status_id } = await req.json()
             const { error } = await supabaseClient
@@ -154,10 +222,10 @@ serve(async (req) => {
 
         if (path === '/status_lemmata' && method === 'GET') {
             const status_val = url.searchParams.get('status_val')
+            const source_id = url.searchParams.get('source_id')
             const page = parseInt(url.searchParams.get('page') ?? '1')
             const page_size = parseInt(url.searchParams.get('page_size') ?? '100')
 
-            // First find status_id
             const { data: statusData } = await supabaseClient
                 .from('lemma_status')
                 .select('id')
@@ -169,10 +237,16 @@ serve(async (req) => {
             const start = (page - 1) * page_size
             const end = start + page_size - 1
 
-            const { data, error } = await supabaseClient
+            let query = supabaseClient
                 .from('lemma')
-                .select('*')
+                .select('*, lemma_source!inner(source_id)')
                 .eq('status_id', statusData.id)
+
+            if (source_id) {
+                query = query.eq('lemma_source.source_id', source_id)
+            }
+
+            const { data, error } = await query
                 .order('id')
                 .range(start, end)
 
@@ -206,7 +280,6 @@ serve(async (req) => {
             const page = parseInt(url.searchParams.get('page') ?? '1')
             const page_size = parseInt(url.searchParams.get('page_size') ?? '100')
 
-            // Join with context table via lemma_context
             const { data, error } = await supabaseClient
                 .from('lemma_context')
                 .select('context(*)')
@@ -256,7 +329,7 @@ serve(async (req) => {
             })
         }
 
-        // POST/PATCH endpoints for other entities
+        // Other POST endpoints
         if (method === 'POST') {
             const body = await req.json()
             let table = ''
@@ -273,6 +346,11 @@ serve(async (req) => {
             }
             else if (path === '/bulk_lemma_context') {
                 const { error } = await supabaseClient.from('lemma_context').insert(body)
+                if (error) throw error
+                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            else if (path === '/bulk_lemma_ignored') {
+                const { error } = await supabaseClient.from('lemma_ignored').insert(body)
                 if (error) throw error
                 return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
             }
@@ -293,107 +371,24 @@ serve(async (req) => {
             }
         }
 
-        if (path === '/lemma_id' && method === 'GET') {
-            const { value } = await req.json()
+        // Ignored lemmata list
+        if (path === '/lemma_ignored' && method === 'GET') {
             const { data, error } = await supabaseClient
-                .from('lemma')
-                .select('id')
-                .eq('lemma', value)
-                .single()
+                .from('lemma_ignored')
+                .select('lemma')
             if (error) throw error
-            return new Response(JSON.stringify(data.id), {
+            return new Response(JSON.stringify(data ? data.map((d: any) => d.lemma) : []), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
 
-        if (path.startsWith('/lemma_status/') && method === 'GET') {
-            const status_val = path.split('/')[2]
-            const { data, error } = await supabaseClient
-                .from('lemma_status')
-                .select('id')
-                .eq('status', status_val)
-                .single()
-            if (error) throw error
-            return new Response(JSON.stringify(data.id), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        if (path.startsWith('/lemma_status_by_id/') && method === 'GET') {
-            const status_id = path.split('/')[2] // Fixed index from 3 to 2
-            const { data, error } = await supabaseClient
-                .from('lemma_status')
-                .select('*')
-                .eq('id', status_id)
-                .single()
-            if (error) throw error
-            return new Response(JSON.stringify(data), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        if (path.startsWith('/source_kind/') && method === 'GET') {
-            const id = path.split('/')[2]
-            const { data, error } = await supabaseClient
-                .from('source_kind')
-                .select('*')
-                .eq('id', id)
-                .single()
-            if (error) throw error
-            return new Response(JSON.stringify(data), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        if (path.startsWith('/source_contexts/') && method === 'GET') {
-            const source_id = path.split('/')[2]
-            const page = parseInt(url.searchParams.get('page') ?? '1')
-            const page_size = parseInt(url.searchParams.get('page_size') ?? '100')
-            const { data, error } = await supabaseClient
-                .from('context')
-                .select('*')
-                .eq('source_id', source_id)
-                .order('id')
-                .range((page - 1) * page_size, page * page_size - 1)
-            if (error) throw error
-            return new Response(JSON.stringify(data), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        if (path === '/bulk_lemma' && method === 'GET') {
-            const lemmata_values = await req.json()
-            const { data, error } = await supabaseClient
-                .from('lemma')
-                .select('id, lemma')
-                .in('lemma', lemmata_values)
-
-            if (error) throw error
-            const result = data.reduce((acc: any, curr: any) => {
-                acc[curr.lemma] = curr.id
-                return acc
-            }, {})
-            return new Response(JSON.stringify(result), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        if (path === '/learn/overview' && method === 'GET') {
-            const { data, error } = await supabaseClient.rpc('get_source_learn_overview')
-            if (error) throw error
-            return new Response(JSON.stringify(data), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
-        }
-
-        // Add more endpoints as needed...
-        // For now, return 404 for unhandled paths
         return new Response(JSON.stringify({ error: 'Not Found', path }), {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
 
     } catch (error: any) {
+        console.error('[UNCAUGHT ERROR]', error)
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

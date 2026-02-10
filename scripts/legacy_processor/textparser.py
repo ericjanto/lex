@@ -60,6 +60,7 @@ class TextParser:
         existing_irrelevant_vocab = self._load_vocab(
             Const.PATH_IRRELEVANT_VOCAB
         )
+        ignored_lemmata = set(self.api.get_all_ignored_lemmata())
 
         source_kind_id = self.api.post_source_kind(source_metadata.source_kind)
         source_id = self.api.post_source(
@@ -134,6 +135,7 @@ class TextParser:
                             t,
                             existing_base_vocab,
                             existing_irrelevant_vocab,
+                            ignored_lemmata,
                         ),
                         doc_context,
                     )
@@ -217,12 +219,16 @@ class TextParser:
 
     @staticmethod
     def _is_relevant_token(
-        token: Token, base_vocab: set[str], irrelevant_vocab: set[str]
+        token: Token,
+        base_vocab: set[str],
+        irrelevant_vocab: set[str],
+        ignored_lemmata: set[str],
     ):
         lemma = token.lemma_.lower()
         return (
             lemma not in base_vocab
             and lemma not in irrelevant_vocab
+            and lemma not in ignored_lemmata
             and token.pos_ in Const.UPOS_RELEVANT
             and not token.is_stop
             and not is_stop(lemma, STOP_WORDS)

@@ -2,24 +2,18 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useAuth } from './AuthProvider'
 
 export default function AuthButton() {
-    const [user, setUser] = useState<any>(null)
+    const { user } = useAuth()
     const [showPasswordPrompt, setShowPasswordPrompt] = useState(false)
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const router = useRouter()
     const supabase = createClient()
-
-    useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            setUser(user)
-        }
-        getUser()
-    }, [supabase])
 
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -27,7 +21,7 @@ export default function AuthButton() {
         setError('')
 
         const { error } = await supabase.auth.signInWithPassword({
-            email: 'jantoeric@gmail.com',
+            email: email,
             password: password,
         })
 
@@ -35,8 +29,6 @@ export default function AuthButton() {
             setError('Invalid password')
             setLoading(false)
         } else {
-            const { data: { user } } = await supabase.auth.getUser()
-            setUser(user)
             setShowPasswordPrompt(false)
             setPassword('')
             router.refresh()
@@ -46,7 +38,6 @@ export default function AuthButton() {
     const handleSignOut = async () => {
         await supabase.auth.signOut()
         router.refresh()
-        setUser(null)
     }
 
     return (
@@ -73,6 +64,17 @@ export default function AuthButton() {
                         <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
                             <form onSubmit={handleSignIn}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="Enter email"
+                                    autoFocus
+                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Password
                                 </label>
                                 <input
@@ -81,7 +83,6 @@ export default function AuthButton() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="Enter password"
-                                    autoFocus
                                 />
                                 {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
                                 <div className="flex gap-2 mt-3">
@@ -98,7 +99,7 @@ export default function AuthButton() {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={loading || !password}
+                                        disabled={loading || !password || !email}
                                         className="flex-1 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                                     >
                                         {loading ? 'Signing in...' : 'Sign In'}

@@ -10,7 +10,7 @@ type SourceOverview = {
     author: string;
     word_count: number | null;
     new_count: number;
-    synced_count: number;
+    learning_count: number;
     learned_count: number;
     max_learned_position: number;
 };
@@ -28,7 +28,7 @@ export default function LearnOverview() {
             <h1 className="text-2xl font-bold mb-6">Learning Process</h1>
             <div className="space-y-6">
                 {data?.map((source) => {
-                    const totalLemmata = source.new_count + source.synced_count + source.learned_count;
+                    const totalLemmata = source.new_count + source.learning_count + source.learned_count;
                     const coveragePercent = source.word_count
                         ? ((source.max_learned_position / source.word_count) * 100).toFixed(1)
                         : "N/A";
@@ -56,9 +56,9 @@ export default function LearnOverview() {
                                                 title={`Learned: ${source.learned_count}`}
                                             />
                                             <div
-                                                style={{ width: `${(source.synced_count / totalLemmata) * 100}%` }}
+                                                style={{ width: `${(source.learning_count / totalLemmata) * 100}%` }}
                                                 className="bg-orange-400"
-                                                title={`Synced: ${source.synced_count}`}
+                                                title={`Learning: ${source.learning_count}`}
                                             />
                                             <div
                                                 style={{ width: `${(source.new_count / totalLemmata) * 100}%` }}
@@ -72,7 +72,7 @@ export default function LearnOverview() {
                                 </div>
                                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                                     <span>{source.learned_count} learned</span>
-                                    <span>{source.synced_count} synced</span>
+                                    <span>{source.learning_count} learning</span>
                                     <span>{source.new_count} new</span>
                                 </div>
                             </div>

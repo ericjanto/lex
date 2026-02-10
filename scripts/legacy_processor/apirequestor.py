@@ -78,6 +78,11 @@ class ApiRequestor:
         assert r.status_code == 200
         return r.json()
 
+    def get_all_ignored_lemmata(self) -> list[str]:
+        r = requests.get(f"{self.api_url}/lemma_ignored")
+        assert r.status_code == 200
+        return r.json()
+
     def post_lemma(
         self, lemma: str, status_id: StatusId, source_id: SourceId
     ) -> LemmaId:

@@ -14,6 +14,8 @@ import { SWRProvider } from "@/components/SWRProvider";
 
 // ... existing imports
 
+import AuthProvider from "@/components/AuthProvider";
+
 export default function RootLayout({
   children,
 }: {
@@ -22,13 +24,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning>
-        <SWRProvider>
-          <div className="flex items-center justify-between p-4 border-b">
-            <Link href={"/"} className="text-xl font-bold">Lex</Link>
-            <AuthButton />
-          </div>
-          {children}
-        </SWRProvider>
+        <AuthProvider>
+          <SWRProvider>
+            <div className="flex items-center justify-between p-4 border-b">
+              <Link href={"/"} className="text-xl font-bold">Lex</Link>
+              <div className="ml-auto">
+                <AuthButton />
+              </div>
+            </div>
+            {children}
+          </SWRProvider>
+        </AuthProvider>
       </body>
     </html>
   );

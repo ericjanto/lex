@@ -15,7 +15,7 @@ function functionalColour(status: StatusVal) {
   switch (status) {
     case "new":
       return "red";
-    case "synced":
+    case "learning":
       return "orange";
     case "learned":
       return "green";

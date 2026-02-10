@@ -15,7 +15,7 @@ export default function Page() {
         <Link href="/status/new">/status/new</Link>
       </li>
       <li>
-        <Link href="/status/synced">/status/synced</Link>
+        <Link href="/status/learning">/status/learning</Link>
       </li>
       <li>
         <Link href="/status/learned">/status/learned</Link>

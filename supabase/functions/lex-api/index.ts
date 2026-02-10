@@ -75,6 +75,19 @@ serve(async (req) => {
             })
         }
 
+        if (path === '/lemma' && method === 'PATCH') {
+            const { id, lemma } = await req.json()
+            const { error } = await supabaseClient
+                .from('lemma')
+                .update({ lemma })
+                .eq('id', id)
+
+            if (error) throw error
+            return new Response(JSON.stringify(true), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
         if (path === '/lemma' && method === 'DELETE') {
             const lemma_ids: number[] = await req.json()
             console.log(`[DELETE /lemma] Processing ${lemma_ids.length} lemmata.`)
@@ -107,7 +120,6 @@ serve(async (req) => {
 
                     for (const cid of contextIds) {
                         // Check for other distinct lemmata associated with this context
-                        // We do this BEFORE removing the current relation to see the full state
                         const { data: allLinks, error: allLinksError } = await supabaseClient
                             .from('lemma_context')
                             .select('lemma_id')
@@ -188,6 +200,20 @@ serve(async (req) => {
             }
 
             return new Response(JSON.stringify(true), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
+        if (path.startsWith('/lemma_status_by_id/') && method === 'GET') {
+            const id = path.split('/')[2]
+            const { data, error } = await supabaseClient
+                .from('lemma_status')
+                .select('*')
+                .eq('id', id)
+                .single()
+
+            if (error) throw error
+            return new Response(JSON.stringify(data), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -332,6 +358,46 @@ serve(async (req) => {
         // Other POST endpoints
         if (method === 'POST') {
             const body = await req.json()
+            if (path === '/bulk_lemma_source') {
+                const { error } = await supabaseClient.from('lemma_source').insert(body)
+                if (error) throw error
+                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/bulk_lemma_context') {
+                const { error } = await supabaseClient.from('lemma_context').insert(body)
+                if (error) throw error
+                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/bulk_lemma_ignored') {
+                const { error } = await supabaseClient.from('lemma_ignored').insert(body)
+                if (error) throw error
+                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/bulk_lemmata') {
+                const { lemmata } = body
+                const { data, error } = await supabaseClient.from('lemma').insert(lemmata).select('id, lemma')
+                if (error) throw error
+                const result = data.reduce((acc: any, curr: any) => { acc[curr.lemma] = curr.id; return acc }, {})
+                return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/lemma_derivation') {
+                const { data, error } = await supabaseClient.from('lemma_derivation').insert(body).select('id').single()
+                if (error) throw error
+                return new Response(JSON.stringify(data.id), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/bulk_lemma_derivation') {
+                const { error } = await supabaseClient.from('lemma_derivation').insert(body)
+                if (error) throw error
+                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+            if (path === '/lemma_derivations/search') {
+                const { sources } = body
+                const { data, error } = await supabaseClient.from('lemma_derivation').select('source, target_id').in('source', sources)
+                if (error) throw error
+                return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+            }
+
+            // Fallback for simple single inserts
             let table = ''
             if (path === '/lemma_status') table = 'lemma_status'
             else if (path === '/lemma_source') table = 'lemma_source'
@@ -339,28 +405,6 @@ serve(async (req) => {
             else if (path === '/source') table = 'source'
             else if (path === '/context') table = 'context'
             else if (path === '/lemma_context') table = 'lemma_context'
-            else if (path === '/bulk_lemma_source') {
-                const { error } = await supabaseClient.from('lemma_source').insert(body)
-                if (error) throw error
-                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
-            else if (path === '/bulk_lemma_context') {
-                const { error } = await supabaseClient.from('lemma_context').insert(body)
-                if (error) throw error
-                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
-            else if (path === '/bulk_lemma_ignored') {
-                const { error } = await supabaseClient.from('lemma_ignored').insert(body)
-                if (error) throw error
-                return new Response(JSON.stringify(true), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
-            else if (path === '/bulk_lemmata') {
-                const { lemmata } = body
-                const { data, error } = await supabaseClient.from('lemma').insert(lemmata).select('id, lemma')
-                if (error) throw error
-                const result = data.reduce((acc: any, curr: any) => { acc[curr.lemma] = curr.id; return acc }, {})
-                return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
 
             if (table) {
                 const { data, error } = await supabaseClient.from(table).insert(body).select('id').single()
@@ -382,7 +426,7 @@ serve(async (req) => {
             })
         }
 
-        return new Response(JSON.stringify({ error: 'Not Found', path }), {
+        return new Response(JSON.stringify({ error: 'Not Found', path, method }), {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })

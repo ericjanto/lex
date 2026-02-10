@@ -299,11 +299,11 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
             setAllLemmata([]);
             setHasMore(true);
             await mutate();
-            const syncedNames = ankiIds.map(id => allLemmata?.find(item => item.id === id)?.lemma).filter(Boolean);
+            const learningNames = ankiIds.map(id => allLemmata?.find(item => item.id === id)?.lemma).filter(Boolean);
             const discardedNames = Array.from(ignoredLemmata).map(id => allLemmata?.find(item => item.id === id)?.lemma).filter(Boolean);
 
             setSyncMessage(`Sync complete!
-                Added: ${syncedNames.join(', ') || 'none'}
+                Added: ${learningNames.join(', ') || 'none'}
                 Discarded: ${discardedNames.join(', ') || 'none'}`);
             setTimeout(() => setSyncMessage(null), 10000); // 10s so it's readable
 

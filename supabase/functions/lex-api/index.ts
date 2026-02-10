@@ -32,7 +32,7 @@ serve(async (req) => {
         )
 
         const url = new URL(req.url)
-        const path = url.pathname.replace('/lex-api', '')
+        const path = url.pathname.split('/lex-api')[1] || '/'
         const method = req.method
 
         // Verify authentication for non-GET requests

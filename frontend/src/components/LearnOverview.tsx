@@ -27,7 +27,7 @@ export default function LearnOverview() {
         <div className="p-4 max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold mb-6">Learning Process</h1>
             <div className="space-y-6">
-                {data?.map((source) => {
+                {Array.isArray(data) && data.map((source) => {
                     const totalLemmata = source.new_count + source.learning_count + source.learned_count;
                     const coveragePercent = source.word_count
                         ? ((source.max_learned_position / source.word_count) * 100).toFixed(1)

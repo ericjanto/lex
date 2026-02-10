@@ -8,7 +8,6 @@ import { useAuth } from './AuthProvider'
 export default function AuthButton() {
     const { user } = useAuth()
     const [showPasswordPrompt, setShowPasswordPrompt] = useState(false)
-    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -21,7 +20,7 @@ export default function AuthButton() {
         setError('')
 
         const { error } = await supabase.auth.signInWithPassword({
-            email: email,
+            email: process.env.NEXT_PUBLIC_LOGIN_EMAIL || 'jantoeric@gmail.com',
             password: password,
         })
 
@@ -64,17 +63,6 @@ export default function AuthButton() {
                         <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
                             <form onSubmit={handleSignIn}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    placeholder="Enter email"
-                                    autoFocus
-                                />
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Password
                                 </label>
                                 <input
@@ -83,6 +71,7 @@ export default function AuthButton() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="Enter password"
+                                    autoFocus
                                 />
                                 {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
                                 <div className="flex gap-2 mt-3">
@@ -99,7 +88,7 @@ export default function AuthButton() {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={loading || !password || !email}
+                                        disabled={loading || !password}
                                         className="flex-1 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                                     >
                                         {loading ? 'Signing in...' : 'Sign In'}

@@ -30,7 +30,14 @@ serve(async (req) => {
         // Verify the user is authenticated
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
         if (authError || !user) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            return new Response(JSON.stringify({
+                error: 'Unauthorized',
+                details: authError?.message,
+                code: authError?.status,
+                hint: 'Check Authorization header and Supabase secrets',
+                // Debugging info (remove in production if sensitive)
+                debug_auth_len: authHeader?.length
+            }), {
                 status: 401,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })

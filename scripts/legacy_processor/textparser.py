@@ -151,6 +151,11 @@ class TextParser:
                 # TODO: I think spacy lowers lemma text by default
                 lemmata_values = [t.lemma_.lower() for t in doc_filtered]
 
+                # TODO: Retrieve lemma derivations here using api.get_lemma_derivations(lemmata_values)
+                # Map original lemmata to their target IDs if a derivation exists.
+                # Update lemmata_values or the mapping logic below to use the target ID.
+                # This ensures that contexts are linked to the canonical lemma (e.g., 'running' -> 'run').
+
                 self.api.bulk_post_lemmata(
                     lemmata_values=lemmata_values,
                     status_id=status_id_staged,

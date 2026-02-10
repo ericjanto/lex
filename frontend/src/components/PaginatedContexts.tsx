@@ -14,11 +14,21 @@ function ContextSetDisplayer({
 }) {
   const { data, error, isLoading } = useSWRImmutable(fetchQuery);
 
-  if (error) return <div>Failed to load: ({JSON.stringify(error)})</div>;
-  if (isLoading) return <div>Loading...</div>;
+  if (!Array.isArray(data)) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+        <p className="font-bold">Invalid response format</p>
+        <p className="text-sm">Expected an array of contexts, but received:</p>
+        <pre className="mt-2 text-xs overflow-auto max-h-40 bg-red-100 p-2 rounded">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+
   return (
     <>
-      {data!.map((context: Context) => {
+      {data.map((context: Context) => {
         return (
           <span key={context.id} id={String(context.id)}>
             <Context

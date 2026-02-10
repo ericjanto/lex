@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import useSWR from "swr";
-import { API_BASE_URL } from "@/lib/const";
+import { API_BASE_URL, getEnvHeaders } from "@/lib/const";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -19,6 +19,8 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
     const [ignoredLemmata, setIgnoredLemmata] = useState<Set<number>>(new Set());
     // translations: map of lemma id -> user-entered translation text
     const [translations, setTranslations] = useState<Record<number, string>>({});
+    // lemma edits: map of lemma id -> user-entered lemma text
+    const [lemmaEdits, setLemmaEdits] = useState<Record<number, string>>({});
     const [isSyncing, setIsSyncing] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
@@ -28,6 +30,10 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
     const [hasMore, setHasMore] = useState(true);
     const [lastCacheSave, setLastCacheSave] = useState<Date | null>(null);
 
+    // Duplicate warnings: map of lemma id -> warning message (or null if none)
+    const [duplicateWarnings, setDuplicateWarnings] = useState<Record<number, string | null>>({});
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
     // Fetch page of new lemmata for this source
     const { data: fetchedPage, error, isLoading: dataLoading, mutate } = useSWR<Lemma[]>(
         `${API_BASE_URL}/status_lemmata?status_val=new&source_id=${sourceId}&page=${page}&page_size=${PAGE_SIZE}`
@@ -35,7 +41,7 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
 
     // Accumulate pages into allLemmata
     useEffect(() => {
-        if (fetchedPage) {
+        if (fetchedPage && Array.isArray(fetchedPage)) {
             if (page === 1) {
                 setAllLemmata(fetchedPage);
             } else {
@@ -55,6 +61,7 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
     useEffect(() => {
         const storedIgnored = localStorage.getItem(`ignoredLemmata_${sourceId}`);
         const storedTranslations = localStorage.getItem(`translations_${sourceId}`);
+        const storedLemmaEdits = localStorage.getItem(`lemmaEdits_${sourceId}`);
         const storedCacheTime = localStorage.getItem(`cacheTime_${sourceId}`);
         if (storedIgnored) {
             const parsed = JSON.parse(storedIgnored);
@@ -64,6 +71,10 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
             const parsed = JSON.parse(storedTranslations);
             if (Object.keys(parsed).length > 0) setTranslations(parsed);
         }
+        if (storedLemmaEdits) {
+            const parsed = JSON.parse(storedLemmaEdits);
+            if (Object.keys(parsed).length > 0) setLemmaEdits(parsed);
+        }
         if (storedCacheTime) {
             setLastCacheSave(new Date(storedCacheTime));
         }
@@ -71,7 +82,9 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
 
     // Save state to local storage on change
     useEffect(() => {
-        const hasChanges = ignoredLemmata.size > 0 || Object.values(translations).some(v => v.trim() !== '');
+        const hasChanges = ignoredLemmata.size > 0 ||
+            Object.values(translations).some(v => v.trim() !== '') ||
+            Object.values(lemmaEdits).some(v => v.trim() !== '');
 
         if (ignoredLemmata.size > 0) {
             localStorage.setItem(`ignoredLemmata_${sourceId}`, JSON.stringify(Array.from(ignoredLemmata)));
@@ -88,12 +101,21 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
             localStorage.removeItem(`translations_${sourceId}`);
         }
 
+        const filledLemmaEdits = Object.fromEntries(
+            Object.entries(lemmaEdits).filter(([, v]) => v.trim() !== '')
+        );
+        if (Object.keys(filledLemmaEdits).length > 0) {
+            localStorage.setItem(`lemmaEdits_${sourceId}`, JSON.stringify(filledLemmaEdits));
+        } else {
+            localStorage.removeItem(`lemmaEdits_${sourceId}`);
+        }
+
         if (hasChanges) {
             const now = new Date();
             localStorage.setItem(`cacheTime_${sourceId}`, now.toISOString());
             setLastCacheSave(now);
         }
-    }, [ignoredLemmata, translations, sourceId]);
+    }, [ignoredLemmata, translations, lemmaEdits, sourceId]);
 
     // Count lemmata ready to sync (have non-empty translation)
     const toSyncCount = Object.values(translations).filter(v => v.trim() !== '').length;
@@ -123,9 +145,11 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
     const handleDiscardCache = () => {
         localStorage.removeItem(`ignoredLemmata_${sourceId}`);
         localStorage.removeItem(`translations_${sourceId}`);
+        localStorage.removeItem(`lemmaEdits_${sourceId}`);
         localStorage.removeItem(`cacheTime_${sourceId}`);
         setIgnoredLemmata(new Set());
         setTranslations({});
+        setLemmaEdits({});
         setLastCacheSave(null);
         setShowLeaveDialog(false);
         if (pendingNavigation) {
@@ -151,6 +175,11 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
             delete newTranslations[id];
             setTranslations(newTranslations);
         }
+        if (lemmaEdits[id]) {
+            const newLemmaEdits = { ...lemmaEdits };
+            delete newLemmaEdits[id];
+            setLemmaEdits(newLemmaEdits);
+        }
     };
 
     const handleUndoDiscard = (id: number) => {
@@ -161,6 +190,53 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
 
     const handleTranslationChange = (id: number, value: string) => {
         setTranslations(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleLemmaEditChange = (id: number, value: string) => {
+        setLemmaEdits(prev => ({ ...prev, [id]: value }));
+
+        // Debounce duplicate check
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+
+        const trimmed = value.trim();
+
+        // Skip check if empty, no session, or value matches the original lemma
+        const originalLemma = allLemmata?.find(l => l.id === id)?.lemma;
+        if (!trimmed || !session?.access_token || trimmed === originalLemma) {
+            setDuplicateWarnings(prev => ({ ...prev, [id]: null }));
+            return;
+        }
+
+        debounceTimeout.current = setTimeout(async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/check_duplicate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                        ...(getEnvHeaders() as Record<string, string>)
+                    },
+                    body: JSON.stringify({ lemma: trimmed })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.exists && data.id !== id) {
+                        setDuplicateWarnings(prev => ({
+                            ...prev,
+                            [id]: `Duplicate: already exists as lemma #${data.id}`
+                        }));
+                    } else {
+                        setDuplicateWarnings(prev => ({ ...prev, [id]: null }));
+                    }
+                } else {
+                    console.warn('Duplicate check failed:', response.status);
+                }
+            } catch (error) {
+                console.error("Error checking duplicate:", error);
+            }
+        }, 500);
     };
 
     const handleSync = async () => {
@@ -178,8 +254,9 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${session?.access_token}`,
-                        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                        ...(getEnvHeaders() as Record<string, string>)
                     },
                     body: JSON.stringify(ignoredPayload)
                 });
@@ -190,8 +267,9 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${session?.access_token}`,
-                            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+                            'Authorization': `Bearer ${session?.access_token}`,
+                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                            ...(getEnvHeaders() as Record<string, string>)
                         },
                         body: JSON.stringify(Array.from(ignoredLemmata))
                     });
@@ -206,44 +284,101 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                 }
             }
 
-            // 2. Submit Anki cards — use translation as Back instead of context
+            // 2. Handle Sync
             const ankiIds = Object.entries(translations)
                 .filter(([, v]) => v.trim() !== '')
                 .map(([id]) => Number(id));
 
-            for (const id of ankiIds) {
-                const l = allLemmata?.find(item => item.id === id);
-                if (!l) continue;
+            if (ankiIds.length > 0) {
+                // Generate import UUID
+                const importUuid = crypto.randomUUID();
+                const tags = [`import_${importUuid}`];
 
-                const translation = translations[id].trim();
+                for (const id of ankiIds) {
+                    const l = allLemmata?.find(item => item.id === id);
+                    if (!l) continue;
 
-                const ankiUrl = API_BASE_URL.replace(/\/lex-api$/, '/anki-connect');
-                const response = await fetch(ankiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${session?.access_token}`,
-                        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-                    },
-                    body: JSON.stringify({
-                        action: 'addNote',
-                        params: {
-                            lemma: l.lemma,
-                            translation: translation,
-                            source: '',
-                            source_url: '',
-                            lemma_id: l.id
+                    const translation = translations[id].trim();
+                    const currentLemmaText = lemmaEdits[id]?.trim() || l.lemma;
+
+                    // Check if lemma was edited
+                    if (currentLemmaText !== l.lemma) {
+                        // 2a. Create derivation entry
+                        const derivRes = await fetch(`${API_BASE_URL}/lemma_derivation`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session?.access_token}`,
+                                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                                ...(getEnvHeaders() as Record<string, string>)
+                            },
+                            body: JSON.stringify({
+                                source: l.lemma,
+                                target_id: l.id
+                            })
+                        });
+
+                        if (!derivRes.ok) {
+                            const err = await derivRes.text();
+                            console.error(`Failed to create derivation for ${l.lemma}:`, err);
+                        } else {
+                            console.log(`Created derivation: "${l.lemma}" -> ID ${l.id}`);
                         }
-                    })
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    if (errorText.includes('duplicate')) {
-                        console.warn(`Skipping duplicate Anki note for: ${l.lemma}`);
-                        continue;
+
+                        // 2b. Update lemma text
+                        const updateRes = await fetch(`${API_BASE_URL}/lemma`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session?.access_token}`,
+                                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                                ...(getEnvHeaders() as Record<string, string>)
+                            },
+                            body: JSON.stringify({
+                                id: l.id,
+                                lemma: currentLemmaText
+                            })
+                        });
+
+                        if (!updateRes.ok) {
+                            const err = await updateRes.text();
+                            console.error(`Failed to update lemma ${l.id} to "${currentLemmaText}":`, err);
+                            throw new Error(`Failed to update lemma: ${err}`);
+                        } else {
+                            console.log(`Updated lemma ${l.id}: "${l.lemma}" -> "${currentLemmaText}"`);
+                        }
                     }
-                    console.error('Anki sync failed for', l.lemma, errorText);
-                    throw new Error(`Failed to sync ${l.lemma}: ${errorText}`);
+
+                    const ankiUrl = API_BASE_URL.replace(/\/lex-api$/, '/anki-connect');
+                    const response = await fetch(ankiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`,
+                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                            ...(getEnvHeaders() as Record<string, string>)
+                        },
+                        body: JSON.stringify({
+                            action: 'addNote',
+                            params: {
+                                lemma: currentLemmaText,
+                                translation: translation,
+                                source: '',
+                                source_url: '',
+                                lemma_id: l.id,
+                                tags: tags
+                            }
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        if (errorText.includes('duplicate')) {
+                            console.warn(`Skipping duplicate Anki note for: ${currentLemmaText}`);
+                            continue;
+                        }
+                        console.error('Anki sync failed for', currentLemmaText, errorText);
+                        throw new Error(`Failed to sync ${currentLemmaText}: ${errorText}`);
+                    }
                 }
             }
 
@@ -253,8 +388,9 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${session?.access_token}`,
-                        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                        ...(getEnvHeaders() as Record<string, string>)
                     },
                     body: JSON.stringify({
                         lemma_ids: ankiIds,
@@ -276,8 +412,9 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${session?.access_token}`,
-                            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+                            'Authorization': `Bearer ${session?.access_token}`,
+                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                            ...(getEnvHeaders() as Record<string, string>)
                         },
                         body: JSON.stringify({ action: 'sync' })
                     });
@@ -289,8 +426,10 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
             // Clear local state
             setIgnoredLemmata(new Set());
             setTranslations({});
+            setLemmaEdits({});
             localStorage.removeItem(`ignoredLemmata_${sourceId}`);
             localStorage.removeItem(`translations_${sourceId}`);
+            localStorage.removeItem(`lemmaEdits_${sourceId}`);
             localStorage.removeItem(`cacheTime_${sourceId}`);
             setLastCacheSave(null);
 
@@ -428,9 +567,18 @@ export default function ProcessLemmata({ sourceId }: { sourceId: number }) {
                                     className="border-b last:border-b-0 transition-colors bg-white hover:bg-gray-50"
                                 >
                                     <td className="px-4 py-3">
-                                        <span className="text-lg font-medium text-gray-900">
-                                            {l.lemma}
-                                        </span>
+                                        <input
+                                            type="text"
+                                            value={lemmaEdits[l.id] !== undefined ? lemmaEdits[l.id] : l.lemma}
+                                            onChange={(e) => handleLemmaEditChange(l.id, e.target.value)}
+                                            disabled={!session}
+                                            className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-30 border-gray-200 bg-white font-medium text-gray-900 ${duplicateWarnings[l.id] ? 'border-amber-500 focus:ring-amber-500 bg-amber-50' : ''}`}
+                                        />
+                                        {duplicateWarnings[l.id] && (
+                                            <div className="text-xs text-amber-600 mt-1 font-medium flex items-center gap-1">
+                                                ⚠️ {duplicateWarnings[l.id]}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2">
                                         <input

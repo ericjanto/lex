@@ -3,6 +3,8 @@
 import useSWR from "swr";
 import { API_BASE_URL } from "@/lib/const";
 import Link from "next/link";
+import { useState } from "react";
+import { useAuth } from "./AuthProvider";
 
 type SourceOverview = {
     id: number;
@@ -16,16 +18,62 @@ type SourceOverview = {
 };
 
 export default function LearnOverview() {
-    const { data, error, isLoading } = useSWR<SourceOverview[]>(
+    const { session } = useAuth();
+    const { data, error, isLoading, mutate } = useSWR<SourceOverview[]>(
         `${API_BASE_URL}/learn/overview`
     );
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncResult, setSyncResult] = useState<{ updated_count: number } | null>(null);
+
+    const handleSyncMaturity = async () => {
+        if (!session?.access_token) return;
+        setIsSyncing(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/sync_anki_maturity`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSyncResult(data);
+                mutate();
+                setTimeout(() => setSyncResult(null), 5000);
+            }
+        } catch (err) {
+            console.error('Maturity sync failed:', err);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     if (isLoading) return <div>Loading...</div>;
     if (error) return <div>Error loading learn overview</div>;
 
     return (
         <div className="p-4 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Learning Process</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Learning Process</h1>
+                <div className="flex items-center gap-2">
+                    {syncResult && (
+                        <span className="text-sm text-green-600 font-medium animate-fade-in">
+                            Updated {syncResult.updated_count} cards
+                        </span>
+                    )}
+                    <button
+                        onClick={handleSyncMaturity}
+                        disabled={isSyncing}
+                        className={`px-4 py-2 rounded text-sm font-medium transition-all ${isSyncing
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-white border hover:bg-gray-50 text-gray-700 shadow-sm'
+                            }`}
+                    >
+                        {isSyncing ? 'Syncing...' : 'Sync Maturity'}
+                    </button>
+                </div>
+            </div>
             <div className="space-y-6">
                 {Array.isArray(data) && data.map((source) => {
                     const totalLemmata = source.new_count + source.learning_count + source.learned_count;

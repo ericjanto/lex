@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-environment',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
 }
 
@@ -45,13 +45,18 @@ serve(async (req) => {
 
         // Logic for specific actions
         if (action === 'addNote') {
-            const { lemma, context, source, source_url } = params
+            const { lemma, translation, source, source_url, lemma_id, tags } = params
 
-            // Construct the AnkiConnect payload
-            // Assuming a specific Note Type and Deck. These could be configurable or passed in params.
-            // For now, let's use sensible defaults or env vars if available.
-            const deckName = Deno.env.get('ANKI_DECK_NAME') || 'Lex'
+            const envHeader = req.headers.get('X-Environment')
+            const isMock = envHeader === 'mock'
+
+            const deckName = isMock ? 'LexMock' : (Deno.env.get('ANKI_DECK_NAME') || 'Lex')
             const modelName = Deno.env.get('ANKI_MODEL_NAME') || 'Basic'
+
+            // Build Back field HTML
+            const sourceHtml = source ? `<br><br><small>${source}</small>` : ''
+            const urlHtml = source_url ? `<br><small><a href="${source_url}">${source_url}</a></small>` : ''
+            const backContent = `${translation}${sourceHtml}${urlHtml}`
 
             const payload = {
                 action: 'addNote',
@@ -61,20 +66,17 @@ serve(async (req) => {
                         deckName: deckName,
                         modelName: modelName,
                         fields: {
-                            Front: lemma, // Or whatever fields the user's model has
-                            Back: `${context} <br><br> <small>${source}</small>`,
-                            // Add more fields if necessary
+                            Front: lemma,
+                            Back: backContent,
                         },
                         options: {
                             allowDuplicate: false,
                             duplicateScope: 'deck',
-                            duplicateScopeOptions: {
-                                deckName: deckName,
-                                checkChildren: false,
-                                checkAllModels: false
-                            }
                         },
-                        tags: ['lex_generated']
+                        tags: [
+                            ...(tags || []),
+                            `lemma_${lemma_id}`
+                        ]
                     }
                 }
             }
@@ -117,7 +119,31 @@ serve(async (req) => {
             })
         }
 
-        throw new Error(`Unknown action: ${action}`)
+        // Generic proxy for other actions (findCards, cardsInfo, etc.)
+        const processedParams = { ...(params || {}) };
+        if (action === 'findCards' && typeof processedParams.query === 'string') {
+            const envHeader = req.headers.get('X-Environment')
+            const isMock = envHeader === 'mock'
+            const deckName = isMock ? 'LexMock' : (Deno.env.get('ANKI_DECK_NAME') || 'Lex')
+            // Prepend deck name to query for isolation
+            processedParams.query = `deck:"${deckName}" ${processedParams.query}`
+            console.log(`[anki-connect] Scoped findCards to deck: ${deckName}`)
+        }
+
+        const payload = {
+            action: action,
+            version: 6,
+            params: processedParams
+        }
+        const ankiResponse = await fetch(ankiConnectUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        const ankiResult = await ankiResponse.json()
+        return new Response(JSON.stringify(ankiResult), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
 
     } catch (error: any) {
         return new Response(JSON.stringify({ error: error.message }), {

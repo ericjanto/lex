@@ -52,6 +52,10 @@ class ApiRequestor:
         assert r.status_code == 200
         return r.json()
 
+    # TODO: Implement get_lemma_derivations(lemmata: list[str]) -> dict[str, int]
+    # This method should call POST /lemma_derivations/search to find existing derivations.
+    # This is necessary to correctly associate contexts with their canonical lemma IDs if they have been renamed/derived.
+
     def get_lemma_status(self, status_val: StatusVal) -> StatusId:
         r = requests.get(f"{self.api_url}/lemma_status/{status_val.value}")
         assert r.status_code == 200

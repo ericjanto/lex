@@ -11,15 +11,25 @@ function LemmaSetDisplayer({ fetchQuery }: { fetchQuery: string }) {
 
   if (error) {
     console.log(JSON.stringify(error));
-    return;
+    return <tr><td colSpan={3} style={{ color: 'red' }}>Error: {error.message || 'Failed to fetch'}</td></tr>;
   }
   if (isLoading) {
-    return;
+    return <tr><td colSpan={3}>Loading...</td></tr>;
+  }
+
+  if (!data || !Array.isArray(data)) {
+    return (
+      <tr>
+        <td colSpan={3} style={{ color: 'orange' }}>
+          {data?.error ? `API Error: ${data.error}` : 'No data or invalid format returned'}
+        </td>
+      </tr>
+    );
   }
 
   return (
     <>
-      {data!.map((lemma: Lemma) => {
+      {data.map((lemma: Lemma) => {
         return (
           <tr key={lemma.id}>
             <td>{lemma.id}</td>
